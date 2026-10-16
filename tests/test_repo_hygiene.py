@@ -78,3 +78,55 @@ def test_data_subdirs_have_readme():
     """四个数据子目录各带 README（说明它是哪个里程碑的产出，防"空目录被忽略"）。"""
     for d in FROZEN_DATA_DIRS:
         assert os.path.isfile(os.path.join(ROOT, d, "README.md")), d
+
+
+# --- 品牌隔离（题面第六节第 6 条：不含任何姊妹项目字样） --------------------
+
+#: 姊妹项目词族（**词面不入库**：本守门是"判定词表"，扩词表是正常维护动作）。
+SIBLING_BRAND_TOKENS = (
+    "petfood", "labelcheck", "decision-atlas", "bill-reconciler",
+    "agent-rework", "crash-loop-rescue", "safety-expense", "e-bike",
+    "hws-math", "hws_math", "ghg-workbench", "rcc",
+)
+
+#: 扫描面：入库的源码与文档（排除本文件自身——它就是判定词表的载体）。
+SCAN_EXTS = (".py", ".md", ".toml", ".yml", ".yaml", ".cfg", ".txt")
+SCAN_SKIP_DIRS = (".git", "__pycache__", ".venv", "node_modules")
+
+
+def _iter_scanned_files():
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in SCAN_SKIP_DIRS]
+        for name in filenames:
+            if not name.endswith(SCAN_EXTS):
+                continue
+            path = os.path.join(dirpath, name)
+            if os.path.abspath(path) == os.path.abspath(__file__):
+                continue  # 判定词表自身豁免
+            yield path
+
+
+def test_brand_isolation_no_sibling_tokens():
+    """**题面硬要求**：文档与代码中不得出现任何其他姊妹项目名称。
+
+    实测抓出过一处泄漏（plan 文档里点名了一个姊妹项目的代号）→ 改为"方向级描述"。
+    """
+    offenders = []
+    for path in _iter_scanned_files():
+        try:
+            text = _read(path)
+        except (IOError, OSError, UnicodeDecodeError):
+            continue
+        low = text.lower()
+        for token in SIBLING_BRAND_TOKENS:
+            if token.lower() in low:
+                offenders.append((os.path.relpath(path, ROOT), token))
+    assert offenders == [], "品牌隔离违规（出现姊妹项目词面）：%r" % offenders
+
+
+def test_brand_scan_surface_not_empty():
+    """扫描面非空自证（防"探针抽到空集 → 永不红"）。"""
+    files = list(_iter_scanned_files())
+    assert len(files) >= 10, "扫描面只有 %d 个文件，守门等于空转" % len(files)
+    names = {os.path.basename(p) for p in files}
+    assert "cli.py" in names and "README.md" in names
