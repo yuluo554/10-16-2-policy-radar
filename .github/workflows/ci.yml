@@ -1,0 +1,58 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test:
+    name: test (${{ matrix.os }} / py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python: "3.8"
+          - os: windows-latest
+            python: "3.12"
+          - os: ubuntu-latest
+            python: "3.8"
+          - os: ubuntu-latest
+            python: "3.12"
+    env:
+      # 编码三加固之一：CI job 里 `python -m pytest` 不是我们敲的命令、没有 -X utf8，
+      # 测试内部打印中文会 UnicodeEncodeError。这条环境变量救 CI 全部步骤。
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install (README 那条安装通路)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Test suite
+        run: python -m pytest -q
+
+      - name: CLI smoke — 裸 console script（安装面第四面：`python -m` 与裸命令是两条通路）
+        run: |
+          policy-radar version
+          policy-radar selftest --data-root data
+
+      - name: CLI smoke — python -m 形态（README 另一条通路）
+        run: |
+          python -m policy_radar version
+          python -m policy_radar selftest --data-root data
+
+      - name: 未就绪子命令必须 exit 3（契约退出码接线：set +e + 显式断言）
+        shell: bash
+        run: |
+          set +e
+          python -m policy_radar fetch
+          code=$?
+          echo "fetch exit=$code"
+          test "$code" = "3"

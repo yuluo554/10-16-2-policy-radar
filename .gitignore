@@ -34,9 +34,12 @@ ENV/
 .DS_Store
 
 # Local output & snapshots
-# 本地快照与产出日报均为运行时本地数据，不入库；
-# 真值基准用的预置快照对放在 data/ 下并显式纳入版本管理。
-snapshots/
+# 运行时本地数据不入库；真值基准用的预置快照对放在 data/ 下并显式纳入版本管理。
+#
+# 注意：模式必须**锚定到仓库根**（前导 `/`）。未锚定的 `snapshots/` 会连
+# `data/snapshots/`（冻结 fixtures）一起忽略——那正是"冻结真值库实际不在仓里"
+# 的失效形态（skill 三问之①"入库件在不在"）。
+/snapshots/
 *.snapshot.local.json
-out/
-reports/*.html
+/out/
+/reports/*.html

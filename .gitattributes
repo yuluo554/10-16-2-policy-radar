@@ -1,0 +1,13 @@
+# 源码与文本一律 LF（跨平台"再生成位级一致"的前置）
+* text=auto eol=lf
+
+# 冻结的实测快照/样本：字节不得被 EOL 归一化改写（台账登记过 sha256）
+data/samples/*.json -text
+data/snapshots/*.json -text
+data/truth/*.json -text
+
+*.png binary
+*.jpg binary
+*.pdf binary
+*.gif binary
+*.zip binary
