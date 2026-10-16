@@ -15,6 +15,7 @@
 
 ```bash
 # 安装（唯一 extras = dev，测试期依赖）
+python -m pip install --upgrade pip
 pip install -e ".[dev]"
 
 # 查看版本与自检
@@ -24,6 +25,10 @@ policy-radar selftest --data-root data
 # 自检必须"可证伪"：把数据根指向空目录会返回非 0
 policy-radar selftest --data-root ./empty-dir
 ```
+
+> **为什么先升级 pip**：Python 3.8 自带的 pip 20.2.3 **不支持 PEP 660 可编辑安装**，
+> 直接 `pip install -e .` 会报 `editable mode currently requires a setup.py based build`
+> （实测，见第四节「已知环境问题」）。这一行不可省略。
 
 **退出码语义**（判据以本节为准，非 0 不等于"跑挂了"）：
 
@@ -92,6 +97,10 @@ policy-radar bench --only diff
 
 ## 四、已知环境问题
 
+- **Python 3.8 全新 venv 的 pip 太老，装不上 editable**：3.8 自带 pip 20.2.3 不支持 PEP 660，
+  `pip install -e .` 会报 `editable mode currently requires a setup.py based build`。
+  **处置** = 安装前先 `python -m pip install --upgrade pip`（快速开始已含此行）；
+  实测升级到 pip 25.0.1 后安装一次成功，全量测试 99 项绿（新 clone + 全新 venv 实测）。
 - **首期发布物是源码包 + editable 安装**（`pip install -e .`）。数据文件以**包外相对路径**定位，
   `wheel`/`sdist` 安装后可能解析不到数据根 → 此时显式传 `--data-root`。
   **本项为实测现象与规避方式，不构成"已验证 wheel 安装"的声明。**

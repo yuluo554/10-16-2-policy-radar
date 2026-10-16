@@ -192,6 +192,29 @@ def test_readme_install_line_is_the_dev_extra(readme):
     assert re.search(r'pip install -e\s+"?\.\[dev', readme)
 
 
+def test_readme_upgrades_pip_before_editable_install(readme):
+    """**实测抓出的真缺陷**：Python 3.8 全新 venv 自带 pip 20.2.3，不支持 PEP 660
+    可编辑安装 → 直接 `pip install -e .` 报 `editable mode currently requires a
+    setup.py based build`（新 clone + 全新 venv 实测）。
+
+    守门 = 安装命令块里必须有 `pip install --upgrade pip`，且**出现在 editable 安装之前**
+    （顺序反了同样装不上）。
+    """
+    upgrade = re.search(r"python -m pip install (?:-q )?--upgrade pip", readme)
+    editable = re.search(r'pip install -e\s+"?\.\[dev', readme)
+    assert upgrade, "README 缺 pip 升级行（3.8 全新 venv 装不上 editable）"
+    assert editable, "README 缺 editable 安装行"
+    assert upgrade.start() < editable.start(), "pip 升级必须在 editable 安装之前"
+
+
+def test_ci_workflow_upgrades_pip(  # noqa: D401
+):
+    """CI 同款前置：runner 上的 3.8 也会遇到老 pip。"""
+    path = os.path.join(ROOT, ".github", "workflows", "ci.yml")
+    assert os.path.isfile(path)
+    assert "install --upgrade pip" in _read(path)
+
+
 # --- 5. 退出码语义明示 ------------------------------------------------------
 
 def test_readme_documents_exit_codes(readme):

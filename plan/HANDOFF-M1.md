@@ -16,10 +16,12 @@
 | 可运行骨架（`src/policy_radar/` 7 个模块） | `py -3.8 -X utf8 -m policy_radar selftest --data-root data` → **exit 0**，9 项全 OK |
 | 未就绪子命令 exit 3 契约 | `python -m policy_radar fetch` → **exit 3**（stderr 写明"M2 双源抓取"） |
 | `selftest` 可证伪 | 空数据根 → **exit 1**（`tests/test_selftest.py` 阴性对照 + 变异验证） |
-| 测试套件 | 3.8 与 3.12 **双解释器全绿**（各 99 项收集，同数；命令见第五节） |
-| CI workflow 预置 | `.github/workflows/ci.yml` 四矩阵（win/ubuntu × 3.8/3.12）+ `PYTHONUTF8=1` |
+| 测试套件 | 3.8 与 3.12 **双解释器全绿**（各 **101 项**收集，同数；命令见第五节） |
+| CI workflow 预置 | `.github/workflows/ci.yml` 四矩阵（win/ubuntu × 3.8/3.12）+ `PYTHONUTF8=1` + pip 升级前置 |
 | `data/` 四类目录 + README | `config/ snapshots/ truth/ samples/` 各带 README；`data/README.md` 含 M0 勘误 |
-| **实测抓出并修复的真缺陷** | `.gitignore` 未锚定的 `snapshots/` 会连 `data/snapshots/`（冻结 fixtures）一起忽略 → 改为锚定 `/snapshots/` + `/out/` + `/reports/*.html`；新增 `tests/test_repo_hygiene.py` 守门（含反向断言"运行时目录仍被忽略"） |
+| **干净环境验证（新 clone + 全新 venv 3.8）** | 按 README 逐条跑通：pip 升级 → `pip install -e ".[dev]"` → `pytest` **101 项绿** → CLI 冒烟 |
+| **实测抓出并修复的真缺陷 ①** | `.gitignore` 未锚定的 `snapshots/` 会连 `data/snapshots/`（冻结 fixtures）一起忽略 → 改为锚定 `/snapshots/` + `/out/` + `/reports/*.html`；新增 `tests/test_repo_hygiene.py` 守门（含反向断言"运行时目录仍被忽略"） |
+| **实测抓出并修复的真缺陷 ②** | **Python 3.8 全新 venv 自带 pip 20.2.3 不支持 PEP 660** → 直接 `pip install -e .` 报 `editable mode currently requires a setup.py based build`。修复 = README 快速开始与 CI 都先 `python -m pip install --upgrade pip`；新增守门断言"升级行必须在 editable 安装行**之前**"（顺序反了同样装不上） |
 
 ### M0 实测勘误（**对题面的四处修正，已同步 `data/README.md`**）
 
@@ -84,7 +86,7 @@
 1. **用 `py` 不是 `python`**（后者可能是商店占位符）；跑脚本一律 `py -X utf8`（中文控制台编码）。
 2. **本机双通道**：`py -0p` 实测有 **3.8.8-64** 与 **3.12.10-64**；两条都装了 pytest（3.8 → 7.4.4，3.12 → 8.4.2）。**项目底线 3.8**，所有代码只用 3.8 语法。
 3. **`/tmp` 与 Windows Python 路径不通**：Git Bash 的 `/tmp` 下写文件，`py -3.8` 读不到（实测 `FileNotFoundError: '/tmp/gwy.json'`）。**临时文件一律用工作区相对路径**。
-4. **pytest 计数当轮实测**：M0 实测 `tests/` 收集 **99 项**（3.8 与 3.12 **同数**，均 99）。**别抄上一棒的数字**（skill 实录：计数抄写链会漂）。
+4. **pytest 计数当轮实测**：M0 实测 `tests/` 收集 **101 项**（3.8 与 3.12 **同数**，均 101）。**别抄上一棒的数字**（skill 实录：计数抄写链会漂）。
 5. **写盘 API 3.8 差异**：`Path.write_text(newline=)` 是 **3.10+** 参数 → 用 `open(..., newline="\n")` 或 `write_bytes`（本项目走 `serialize.py` 的 `os.fdopen(fd,"wb")`）。
 6. **`PYTHONDONTWRITEBYTECODE=1`**：pyc 偶发损坏会导致"unknown opcode / 随机 FAIL / 测试数波动"；出怪错先清 `__pycache__` 再跑。
 7. **编码三加固已就位**（别在后续里程碑拆掉）：① 入口 `_ensure_utf8_stdio()`（按 `stream.encoding` 探针，救用户）；② 子进程调用一律显式 `encoding=`（救一切环境）；③ CI `env: PYTHONUTF8=1`（救 CI 全部步骤）。**本机加 `-X utf8` 只证明"我们敲的那条命令"没编码问题**。
@@ -137,7 +139,7 @@ grep -rn "NotImplementedError\|TODO: 实现\|placeholder" src/ tools/
 | 3 | `selftest` **可证伪**（空数据根必须非 0） | `tests/test_selftest.py` 阴性对照 + 2 项变异验证 | ✅ |
 | 4 | 退出码常量齐备且锁进测试 | `tests/test_cli_contract.py` | ✅ |
 | 5 | 序列化单点：双跑逐字节一致 | `tests/test_serialize.py` | ✅ |
-| 6 | 双解释器（3.8 + 3.12）pytest 全量绿 | 两条命令 exit 0；各收集 **99 项**（同数，本对话实测） | ✅ |
+| 6 | 双解释器（3.8 + 3.12）pytest 全量绿 | 两条命令 exit 0；各收集 **101 项**（同数，本对话实测） | ✅ |
 | 7 | README 指令面可执行（路径存在 + 模块可执行） | `tests/test_readme_gate.py`（反射核对，非子串断言） | ✅ |
 | 8 | CI workflow 预置（**未接远端，待首推验证**） | 文件存在 + `PYTHONUTF8`/`pytest` 结构断言 | ✅（**本地等价校验，未接远端，CI 待首推验证**） |
 | 9 | HANDOFF-M1 落盘 | 本文件 | ✅ |
@@ -149,7 +151,7 @@ grep -rn "NotImplementedError\|TODO: 实现\|placeholder" src/ tools/
 
 ## 七、续接指针
 
-- **本棒产出**：`plan/00–07`、`README.md`、`pyproject.toml`、`.gitattributes`、`.gitignore`（已修锚定缺陷）、`.github/workflows/ci.yml`、`src/policy_radar/`（7 模块）、`tests/`（6 文件，99 项）、`data/`（四目录 + 5 份 README）。
+- **本棒产出**：`plan/00–07`、`README.md`、`pyproject.toml`、`.gitattributes`、`.gitignore`（已修锚定缺陷）、`.github/workflows/ci.yml`、`src/policy_radar/`（7 模块）、`tests/`（6 文件，101 项）、`data/`（四目录 + 5 份 README）。
 - **下一棒入口**：`plan/05-数据计划.md` 第六节（M1 待办）+ 本文件第二节。
 - **下一棒出口**：`plan/HANDOFF-M2.md`（六节，**先落盘再结束对话**）。
 - **待用户拍板**：`plan/00-README总览.md` 的待定决策表 P1–P6（未答复则按推荐项 A 执行并如实记"按推荐默认执行"）。
