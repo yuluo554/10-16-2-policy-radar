@@ -52,7 +52,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m policy_radar fetch
+          python -m policy_radar bench
           code=$?
-          echo "fetch exit=$code"
+          echo "bench exit=$code"
           test "$code" = "3"
+
+      - name: 已落地子命令的用法错误必须 exit 2（**参数非法时不发任何请求**，CI 不依赖外网）
+        shell: bash
+        run: |
+          set +e
+          python -m policy_radar fetch --pages 0
+          code=$?
+          echo "fetch --pages 0 exit=$code"
+          test "$code" = "2"

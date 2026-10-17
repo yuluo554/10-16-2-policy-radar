@@ -13,7 +13,9 @@
 3. 实测形态锚点：部委 `index` 全空、`pcode` 可空、`fwzh/wenhao/wjlx` 全空；
 4. 真实文号覆盖 M0/M1 记录的形态（含全角括号、序号含空格）；
 5. `puborg` 多部门分隔符含 U+2002 EN SPACE（M1 实测 E5）；
-6. 样本 sha256 与登记值一致（字节冻结）。
+6. 样本 sha256 与登记值一致（字节冻结）；
+7. **M2 抓取器离线回归**：`fetch` 真跑（假传输层只回放下面这些冻结字节）产出的
+   条目与留档样本**逐字段一致**，产物 schema 锁定为 `SCHEMA_FIELDS`。
 """
 
 import io
@@ -23,7 +25,10 @@ import re
 
 import pytest
 
-from policy_radar.model import PolicyItem, items_from_listvo, total_count
+from policy_radar.fetch import build_url, fetch_all
+from policy_radar.model import (
+    FORBIDDEN_SNAPSHOT_FIELDS, SCHEMA_FIELDS, PolicyItem, items_from_listvo, total_count,
+)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SAMPLES = os.path.join(ROOT, "data", "samples")
@@ -230,3 +235,127 @@ def test_registry_records_required_metadata():
             assert entry.get(field) not in (None, ""), (entry["file"], field)
         assert entry["url"].startswith("https://sousuo.www.gov.cn/"), entry["url"]
         assert entry["http_status"] == 200, entry["file"]
+
+
+# --- 6. M2 抓取器离线回归（真跑 fetch，输入是冻结字节） ---------------------
+
+#: (样本文件, 频道标识, 每页条数)。
+FETCH_REGRESSION_CASES = (
+    ("gwy-p1-n5.json", "gwy", 5),
+    ("bm-p1-n5.json", "bm", 5),
+    ("gwy-p1-n30.json", "gwy", 30),
+    ("bm-p1-n30.json", "bm", 30),
+)
+
+#: 频道标识 -> API 的 `t` 参数。
+CHANNEL_PARAM = {"gwy": "zhengcelibrary_gwy", "bm": "zhengcelibrary_bm"}
+
+FROZEN_CLOCK = "2026-10-17T00:00:00"
+
+
+class _FrozenTransport(object):
+    """假传输层：**只回放冻结的真实响应字节**（按 URL 的 `t`/`p`/`n` 取样本）。
+
+    这是"不打真站点"的关键：抓取器走完整真实代码路径，唯一被替换的是"字节从哪来"。
+    """
+
+    def __init__(self, files_by_key):
+        self.files_by_key = dict(files_by_key)
+        self.calls = []
+
+    def __call__(self, url, timeout):
+        self.calls.append(url)
+        query = dict(part.split("=", 1)
+                     for part in url.split("?", 1)[1].split("&") if "=" in part)
+        key = (query["t"], int(query["p"]), int(query["n"]))
+        assert key in self.files_by_key, "计划外请求：%s" % url
+        path = os.path.join(SAMPLES, self.files_by_key[key])
+        with io.open(path, "rb") as fh:
+            return 200, fh.read()
+
+
+def _fetch_frozen(sample_name, source, n):
+    """用冻结样本跑一次真 `fetch_all`（限频/重试/自证/字段校验全在路径上）。"""
+    transport = _FrozenTransport({(CHANNEL_PARAM[source], 1, n): sample_name})
+    items, meta = fetch_all([source], pages=1, n=n, delay=0, get=transport,
+                            sleep=lambda _seconds: None, now=lambda: FROZEN_CLOCK)
+    return items, meta, transport
+
+
+@pytest.mark.parametrize("name,source,n", FETCH_REGRESSION_CASES)
+def test_fetch_output_matches_frozen_sample_field_by_field(name, source, n, payloads):
+    """**DoD 硬判据**：抓取产出与留档样本**逐字段一致**（不是"都有这些字段"）。"""
+    items, meta, transport = _fetch_frozen(name, source, n)
+    expected = items_from_listvo(payloads[name], source)
+
+    assert len(items) == len(expected) == len(payloads[name]["searchVO"]["listVO"])
+    assert [it.to_dict() for it in items] == [it.to_dict() for it in expected]
+    # 条目顺序 = API 返回序（抓取层不重排；规范排序是 M3 快照层的事）。
+    assert [it.id for it in items] == [it.id for it in expected]
+    assert meta[0]["status"] == "ok"
+    assert transport.calls == [build_url(source, 1, n)]
+
+
+@pytest.mark.parametrize("name,source,n", FETCH_REGRESSION_CASES)
+def test_fetch_items_are_schema_locked(name, source, n, payloads):
+    """产出条目必须**恰好**是 `SCHEMA_FIELDS` 十项：不多（UI 字段）不少（必填字段）。"""
+    items, _meta, _transport = _fetch_frozen(name, source, n)
+    for item in items:
+        assert list(item.to_dict().keys()) == list(SCHEMA_FIELDS), item.id
+        assert not (set(item.to_dict()) & set(FORBIDDEN_SNAPSHOT_FIELDS)), item.id
+        assert item.validate() == [], (item.id, item.validate())
+
+
+@pytest.mark.parametrize("name,source,n", FETCH_REGRESSION_CASES)
+def test_fetch_reconciliation_uses_sample_total_count(name, source, n, payloads):
+    """对账里的"声明 totalCount"必须等于样本登记的真实总数（不是请求条数）。"""
+    items, meta, _transport = _fetch_frozen(name, source, n)
+    from policy_radar.fetch import reconciliation_lines
+    sample_total = payloads[name]["searchVO"]["totalCount"]
+    assert meta[0]["declared_total"] == sample_total
+    line = reconciliation_lines(meta)[0]
+    assert re.search(r"请求 %d 条 / 声明 totalCount %d / 实际 %d 条"
+                     % (n, sample_total, len(items)), line), line
+
+
+@pytest.mark.parametrize("name,source,n", FETCH_REGRESSION_CASES)
+def test_fetch_requested_url_equals_registry_url(name, source, n):
+    """抓取请求 URL 必须与 `manifest.json` 登记的**真实抓取 URL**逐字一致。
+
+    不硬编码 URL（"不写漂移硬数字"纪律）：拿登记表比对。
+    """
+    _items, _meta, transport = _fetch_frozen(name, source, n)
+    registry = _read_json("manifest.json")
+    by_file = dict((e["file"], e["url"]) for e in registry["samples"])
+    assert transport.calls == [by_file[name]]
+
+
+def test_fetch_artifact_written_by_cli_is_field_equal_to_sample(tmp_path, monkeypatch):
+    """端到端产物面：CLI `fetch` 写出的文件里，条目与样本**逐字段一致**、无禁字段。"""
+    from policy_radar import fetch as fetch_mod
+    from policy_radar.cli import main_guarded
+
+    name, source, n = "gwy-p1-n5.json", "gwy", 5
+    payload = _read_json(name)
+    transport = _FrozenTransport({(CHANNEL_PARAM[source], 1, n): name})
+    monkeypatch.setattr(fetch_mod, "_default_get", transport)
+    monkeypatch.setattr(fetch_mod, "_default_now", lambda: FROZEN_CLOCK)
+    monkeypatch.setattr(fetch_mod, "_default_sleep", lambda _seconds: None)
+
+    out = os.path.join(str(tmp_path), "fetched.json")
+    code = main_guarded(["fetch", "--channel", source, "--pages", "1", "--n", str(n),
+                         "--delay", "0", "--out", out])
+    assert code == 0
+
+    artifact = json.loads(io.open(out, "r", encoding="utf-8").read())
+    expected = [it.to_dict() for it in items_from_listvo(payload, source)]
+    assert artifact["items"] == expected, "产物条目必须与留档样本逐字段一致"
+    assert artifact["item_count"] == len(expected)
+    assert artifact["reconciliation"]["returned_total"] == len(expected)
+    assert artifact["reconciliation"]["kept_total"] == len(expected)
+    assert artifact["reconciliation"]["dropped_total"] == 0
+    assert artifact["reconciliation"]["declared_total"] == \
+        payload["searchVO"]["totalCount"]
+    for item in artifact["items"]:
+        assert set(item) == set(SCHEMA_FIELDS)
+        assert not (set(item) & set(FORBIDDEN_SNAPSHOT_FIELDS))

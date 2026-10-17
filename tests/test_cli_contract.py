@@ -65,9 +65,11 @@ def test_not_ready_commands_exit_3(command):
 
 
 def _min_args(command):
-    """未就绪命令所需的最小参数（argparse required 参数必须给全，否则 exit 2 掩盖 exit 3）。"""
+    """未就绪命令所需的最小参数（argparse required 参数必须给全，否则 exit 2 掩盖 exit 3）。
+
+    `fetch` 已在 M2 落地，不再是"未就绪"命令 -> 从本表移除（K2 退役四处同步之一）。
+    """
     required = {
-        "fetch": [],
         "diff": ["--snapshot", "s.json", "--current", "c.json"],
         "parse": ["--input", "i.json"],
         "digest": ["--new-items", "n.json"],
@@ -78,9 +80,38 @@ def _min_args(command):
 
 
 def test_not_ready_stderr_mentions_milestone():
-    proc = run_cli(["fetch"])
+    """未就绪命令的 stderr 必须写明计划里程碑。
+
+    M2 后 `fetch` 已落地（真抓取，0/1/2/4），**不能再断言它 exit 3** -> 改用仍在
+    未就绪状态的 `bench`（M4）。这条测试守的是"退出码 3 的提示语含里程碑"这一契约，
+    不是某一条具体命令。
+    """
+    proc = run_cli(["bench"])
     err = proc.stderr.decode("utf-8")
-    assert "M2" in err
+    assert "M4" in err
+
+
+def test_fetch_is_retired_from_not_ready():
+    """`fetch` 必须已从 `NOT_READY_COMMANDS` 移除（否则 M2 落地了还报"未就绪"）。"""
+    assert "fetch" not in NOT_READY_COMMANDS
+    assert "fetch" in _registered_commands(), "fetch 子命令必须仍然注册（只是不再 exit 3）"
+
+
+def test_other_commands_still_not_ready():
+    """反向断言：退役只退 `fetch` 一条，其余命令的 exit 3 语义**不得**被顺手删掉。"""
+    assert set(NOT_READY_COMMANDS) == {"diff", "parse", "digest", "run", "bench"}
+    assert errors.EXIT_NOT_READY == 3
+    assert hasattr(errors, "NotReadyError"), "NOT_READY 通路（M3/M4/M5 还要用）不得整体删除"
+
+
+def test_fetch_usage_error_exit_2_without_network():
+    """`fetch --pages 0` 必须在**发任何请求之前**就被参数校验挡下 -> exit 2。
+
+    本用例刻意不加 `--out` 也不打真站点：参数非法时进程不该碰网络。
+    """
+    proc = run_cli(["fetch", "--pages", "0", "--delay", "0"])
+    assert proc.returncode == errors.EXIT_USAGE, proc.stderr.decode("utf-8", "replace")
+    assert b"pages" in proc.stderr
 
 
 # --- 未知子命令 exit 2 ------------------------------------------------------
@@ -152,10 +183,17 @@ def test_main_guarded_converts_bad_json_value_error(monkeypatch):
 # --- parser 结构（README 指令面守门按它反射） --------------------------------
 
 def test_parser_registers_all_commands():
-    parser = build_parser()
-    actions = [a for a in parser._actions if hasattr(a, "choices") and a.choices]
-    names = set()
-    for a in actions:
-        names |= set(a.choices)
-    expected = {"version", "selftest"} | set(NOT_READY_COMMANDS)
+    names = _registered_commands()
+    expected = ({"version", "selftest", "verify-data", "fetch"}
+                | set(NOT_READY_COMMANDS))
     assert expected <= names, expected - names
+
+
+def _registered_commands():
+    """parser 里注册的全部子命令名（README 指令面守门同款反射）。"""
+    parser = build_parser()
+    names = set()
+    for action in parser._actions:
+        if hasattr(action, "choices") and action.choices:
+            names |= set(action.choices)
+    return names

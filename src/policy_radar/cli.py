@@ -1,9 +1,10 @@
 """CLI 入口：argparse 子命令、退出码、编码守卫。
 
-骨架期行为（plan/03-架构与技术选型.md 第四节）：
-- `selftest` / `version` **已实现且可证伪**；
-- `fetch` / `diff` / `parse` / `digest` / `run` / `bench` 一律 **exit 3（能力未就绪）**，
+- `selftest` / `version` / `verify-data` / `fetch` **已实现且可证伪**；
+- `diff` / `parse` / `digest` / `run` / `bench` 一律 **exit 3（能力未就绪）**，
   **不伪造空结果**——退出码 3 在对应模块落地后整项退役（四处同步，见 errors.py）。
+
+`fetch` 的 exit 3 已在 M2 整项退役：它现在真抓取（0/1/2/4），再断言它 exit 3 会红。
 """
 
 import argparse
@@ -19,8 +20,8 @@ from .paths import ENV_DATA_ROOT, find_data_root, missing_subdirs
 PROG = "policy-radar"
 
 #: 未就绪子命令 -> 计划落地的里程碑（退出码 3 的提示语，README 退出码表同源）。
+#: `fetch` 已在 M2 落地并从此表移除（K2 退役四处同步之一）。
 NOT_READY_COMMANDS = {
-    "fetch": "M2 双源抓取",
     "diff": "M3 快照 diff 新增检测",
     "parse": "M3 文号与部门解析",
     "digest": "M5 中文日报生成",
@@ -71,12 +72,14 @@ def build_parser():
     p_verify.add_argument("--data-root", default=None,
                           help="数据根目录（默认自动发现；测试/演示须显式传）")
 
-    p_fetch = sub.add_parser("fetch", help="[M2] 双源抓取")
-    p_fetch.add_argument("--channel", choices=["gwy", "bm"], default="gwy")
-    p_fetch.add_argument("--pages", type=int, default=1)
-    p_fetch.add_argument("--n", type=int, default=20)
-    p_fetch.add_argument("--delay", type=float, default=1.5, help="逐页抓取间延时（秒）")
-    p_fetch.add_argument("--out", default=None, help="输出路径")
+    p_fetch = sub.add_parser("fetch", help="[M2] 双源抓取（统一 schema + totalCount 对账）")
+    p_fetch.add_argument("--channel", action="append", choices=["gwy", "bm"],
+                         default=None,
+                         help="频道，可重复（默认两频道 gwy+bm，同进程串行抓取）")
+    p_fetch.add_argument("--pages", type=int, default=1, help="每频道抓取页数")
+    p_fetch.add_argument("--n", type=int, default=20, help="每页条数")
+    p_fetch.add_argument("--delay", type=float, default=1.5, help="逐请求抓取间延时（秒）")
+    p_fetch.add_argument("--out", default=None, help="输出路径（默认 out/fetched.json）")
 
     p_diff = sub.add_parser("diff", help="[M3] 快照 diff 新增检测")
     p_diff.add_argument("--snapshot", required=True, help="上次快照文件")
@@ -195,6 +198,9 @@ def main(argv=None):
     if args.command == "verify-data":
         from .verify import cmd_verify_data
         return cmd_verify_data(args)
+    if args.command == "fetch":
+        from .fetch import cmd_fetch
+        return cmd_fetch(args)
     if args.command in NOT_READY_COMMANDS:
         return _not_ready(args.command)
 

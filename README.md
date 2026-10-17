@@ -6,7 +6,7 @@
 
 - 形态：**纯本地 Python CLI**（无服务器、无 GPU、无账号、无遥测）
 - 数据源：中国政府网搜索 API 两个公开频道（国务院政策库 + 部委政策库）
-- 版本：`0.1.0`（M1 数据先行；里程碑进度见 `plan/06-里程碑.md`）
+- 版本：`0.1.0`（M2 双源抓取；里程碑进度见 `plan/06-里程碑.md`）
 - 方法论与全套计划文档：`plan/00-README总览.md`
 
 ---
@@ -21,6 +21,9 @@ pip install -e ".[dev]"
 # 查看版本与自检
 policy-radar version
 policy-radar selftest --data-root data
+
+# 双源抓取：抓取国务院 + 部委两频道，写统一 schema 的条目文件
+policy-radar fetch --pages 1 --n 20 --delay 1.5 --out out/fetched.json
 
 # 数据自审：真值台账一致性核对（实算观测 vs 期望）
 policy-radar verify-data --data-root data
@@ -38,10 +41,10 @@ policy-radar selftest --data-root ./empty-dir
 | 退出码 | 语义 |
 |---|---|
 | 0 | 成功完成 |
-| 1 | 完成但有降级 / 检出问题（如部分频道抓取失败、基准未达标） |
+| 1 | 完成但有降级 / 检出问题（有频道抓取失败、有条目未过 schema 校验被丢弃、基准未达标） |
 | 2 | 用法错误 / 输入不可用（未知子命令、参数错、输入文件缺失、坏格式） |
 | 3 | **能力未就绪**（骨架期专用；对应模块落地后整项退役） |
-| 4 | 外部依赖不可用（网络不可达、API 返回非 200、API 结构异常） |
+| 4 | 外部依赖不可用（网络不可达且**所有**频道都失败、API 返回非 200、API 结构异常、抓取自证不符） |
 
 ## 二、命令总表
 
@@ -50,7 +53,7 @@ policy-radar selftest --data-root ./empty-dir
 | `policy-radar version` | M0 | 打印版本号，exit 0 |
 | `policy-radar selftest` | M0 | 自检（可证伪），exit 0/1 |
 | `policy-radar verify-data` | M1 | 数据自审：真值台账一致性核对，exit 0/1/2 |
-| `policy-radar fetch` | M2 | **exit 3**（未就绪） |
+| `policy-radar fetch` | M2 | 双源抓取：统一 schema 条目文件 + totalCount 对账，exit 0/1/2/4 |
 | `policy-radar diff` | M3 | **exit 3** |
 | `policy-radar parse` | M3 | **exit 3** |
 | `policy-radar digest` | M5 | **exit 3** |
@@ -67,8 +70,9 @@ python -m policy_radar version                    # 模块形态（需要 __main
 参数示例（各命令的完整参数见 `policy-radar <command> --help`）：
 
 ```bash
-policy-radar fetch --channel gwy --pages 1 --n 20 --delay 1.5
-policy-radar diff --snapshot snapshots/last.json --current out/today.json
+policy-radar fetch --pages 1 --n 20 --delay 1.5 --out out/fetched.json
+policy-radar fetch --channel gwy --channel bm --pages 2 --n 20
+policy-radar diff --snapshot snapshots/last.json --current out/fetched.json
 policy-radar parse --input out/new-items.json
 policy-radar digest --new-items out/new-items.json --format both
 policy-radar run --channels gwy,bm --out-dir out
@@ -102,6 +106,10 @@ policy-radar verify-data --data-root data
 9. **不做政策解读/咨询**：只做"新发变更提醒"，不输出任何解读观点。
 10. **真值基准是抽样覆盖**：预置快照对取自两频道各 30 条观测池（非全量普查）；
     覆盖声明逐形态登记"规则包总数 / 采样数 / 采样清单"，并显式标注"抽样覆盖、非穷举"。
+11. **上游数据存在字段缺失**（M2 真跑实测）：部委频道第 2 页有 `summary` 为空的条目
+    （实测 60 条里 1 条，id 26549375）；`index` 在部委频道 60/60 全空，`pcode` 4/60 为空。
+    → 必填字段缺失的条目**不落库、不补编**，计进 `dropped` 并**点名 id**，
+    本次运行降级为 exit 1；产品文件里不会出现凭猜测补出来的字段。
 
 **平台礼仪**：遵守 gov.cn 限频，逐页抓取加延时，不做高并发压测。
 **隐私红线**：纯本地运行，无任何遥测、无账号、无上传；运行时零第三方依赖，只对该域名发只读 GET。
@@ -142,8 +150,9 @@ python -m pytest -q
 | `plan/05-数据计划.md` | 数据资产、生成器纪律、真值语义 |
 | `plan/06-里程碑.md` | M0–M6 逐棒 DoD |
 | `plan/07-交付对标.md` | 评分维度逐条对标 |
-| `plan/HANDOFF-M1.md` | 跨会话交接（下一棒零上下文续接） |
-| `data/README.md` | 数据源三态记录 + M0/M1 实测勘误 |
+| `plan/HANDOFF-M2.md` | 跨会话交接（本棒入口） |
+| `plan/HANDOFF-M3.md` | 跨会话交接（下一棒零上下文续接） |
+| `data/README.md` | 数据源三态记录 + M0/M1/M2 实测勘误 |
 | `data/config/README.md` | 规则数据（别名表/订阅/归一表）语义 |
 | `data/snapshots/README.md` | 预置快照对（字节冻结 fixtures）+ 五形态覆盖 |
 | `data/truth/README.md` | 真值台账语义（expect/also_expect、对账单一源、三问） |
@@ -174,10 +183,36 @@ py -3.8 -X utf8 tools/gen_subscribe_cases.py --check
 py -3.8 -X utf8 tools/gen_truth_manifest.py --check
 ```
 
-## 八、品牌定位
+## 八、双源抓取（M2）
+
+```bash
+policy-radar fetch --pages 1 --n 20 --delay 1.5 --out out/fetched.json
+```
+
+- **抓什么**：国务院政策库 + 部委政策库两个频道（`--channel` 可重复，默认两频道），
+  **同进程串行**抓取、逐请求延时（`--delay`，默认 1.5s），不做并发。
+- **取数路径固定** `searchVO.listVO`（实测：响应顶层 `data` 为 `null`）；条目字段一律
+  经统一 schema（`PolicyItem` 十项），**只存元数据与链接，不抓正文**。
+- **抓取自证**（不做"接口说多少就是多少"）：逐页断言
+  `实际返回条数 == min(--n, totalCount - 已取)`；对账行真打印三个数：
+
+  ```text
+    对账 gwy：请求 40 条 / 声明 totalCount 6222 / 实际 40 条  [ok]
+    对账 bm：请求 40 条 / 声明 totalCount 12803 / 实际 40 条  [ok]
+    对账 合计：请求 80 条 / 声明 totalCount 19025 / 实际 80 条
+    丢弃 1 条（schema 校验未过：不落库、不补编字段，本次降级）：26549375(required_fields_missing)
+  ```
+
+- **失败隔离**：某频道连不上（重试 2 次 + 指数退避后仍失败）-> 该频道记 `degraded`，
+  其条目**整频道丢弃**，另一频道照常产出，exit 1；**所有**频道都失败 -> exit 4 且
+  **不产出任何文件**（写盘走原子写：临时文件 -> rename）。
+- **硬失败**（exit 4）：API 结构异常、响应非 JSON、缺 `totalCount`、**抓取自证不符**。
+  判别口径：传输层抖动可以隔离，**"接口在说谎"必须停**——否则下游会拿着错数据继续跑。
+
+## 九、品牌定位
 
 本仓库独立成题，**不与任何其他项目共享品牌、代码或数据**；文档与代码中不含任何其他项目名称。
 
-## 九、许可
+## 十、许可
 
 MIT。数据来源为中国政府网公开信息，本工具只存元数据与链接，不归档正文。
