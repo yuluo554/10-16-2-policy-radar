@@ -1,13 +1,11 @@
 """CLI 入口：argparse 子命令、退出码、编码守卫。
 
-- `selftest` / `version` / `verify-data` / `fetch` / `diff` / `parse` / `bench`
-  **已实现且可证伪**；
-- `digest` / `run` 一律 **exit 3（能力未就绪）**，
-  **不伪造空结果**——退出码 3 在对应模块落地后整项退役（四处同步，见 errors.py）。
-
-`fetch` 的 exit 3 已在 M2 整项退役（真抓取 0/1/2/4）；`diff` / `parse` 的
-exit 3 已在 M3 整项退役（0/2）；`bench` 的 exit 3 已在 M4 整项退役（0/1/2），
-再断言它们 exit 3 会红。
+- `selftest` / `version` / `verify-data` / `fetch` / `diff` / `parse` / `bench` /
+  `digest` / `run` **已实现且可证伪**；
+- 骨架期的"未就绪 exit 3"已随 M5 落地 `digest`/`run` **整项退役**：
+  `NOT_READY_COMMANDS` 现为**空表**（退出码 3 的语义与常量保留——它是对外契约
+  的一部分，README 退出码表已写；`NotReadyError` 保留但不再有调用方）。
+  退役史：`fetch`（M2）、`diff`/`parse`（M3）、`bench`（M4）、`digest`/`run`（M5）。
 """
 
 import argparse
@@ -23,12 +21,9 @@ from .paths import ENV_DATA_ROOT, find_data_root, missing_subdirs
 PROG = "policy-radar"
 
 #: 未就绪子命令 -> 计划落地的里程碑（退出码 3 的提示语，README 退出码表同源）。
-#: `fetch` 已在 M2 落地、`diff`/`parse` 已在 M3 落地，逐个从此表移除
-#: （K2 退役：落点不止"四处"，退役时用 `grep -rn "exit 3\|EXIT_NOT_READY"` 找全）。
-NOT_READY_COMMANDS = {
-    "digest": "M5 中文日报生成",
-    "run": "M5 端到端编排",
-}
+#: 全部子命令已随 M5 落地，此表为**空**（K2 退役完成；保留结构供将来扩展，
+#: 退出码 3 语义不删——README 退出码表与 tests/test_cli_contract.py 仍锁它）。
+NOT_READY_COMMANDS = {}
 
 
 def _ensure_utf8_stdio():
@@ -99,15 +94,29 @@ def build_parser():
     p_parse.add_argument("--data-root", default=None,
                          help="数据根目录（部门别名表在 data/config/ 下；默认自动发现）")
 
-    p_digest = sub.add_parser("digest", help="[M5] 中文日报生成")
-    p_digest.add_argument("--new-items", required=True)
-    p_digest.add_argument("--hits", default=None)
-    p_digest.add_argument("--out", default=None)
-    p_digest.add_argument("--format", choices=["md", "html", "both"], default="both")
+    p_digest = sub.add_parser("digest",
+                              help="[M5] 中文日报生成：新增条目 + 订阅命中 → Markdown/HTML")
+    p_digest.add_argument("--new-items", required=True,
+                          help="新增清单（diff 产物，规范序）")
+    p_digest.add_argument("--hits", required=True,
+                          help="订阅命中产物（run 编排 / load_subscribe_hits 产出）")
+    p_digest.add_argument("--parse", default=None,
+                          help="解析产物（可选；缺了文号/部门渲染「未提供」）")
+    p_digest.add_argument("--out", default=None,
+                          help="输出路径（md/html 单文件；both 时作为主干派生两格式，默认 out/report.md + out/report.html）")
+    p_digest.add_argument("--format", choices=["md", "html", "both"], default="both",
+                          help="日报格式（默认 both 双格式）")
 
-    p_run = sub.add_parser("run", help="[M5] 端到端编排：抓取->diff->解析->订阅->日报")
-    p_run.add_argument("--channels", default="gwy,bm")
-    p_run.add_argument("--out-dir", default="out")
+    p_run = sub.add_parser("run",
+                           help="[M5] 端到端编排：抓取->diff->解析->订阅->日报（一条命令出结果）")
+    p_run.add_argument("--channels", default=None,
+                       help="频道，逗号分隔（默认 gwy,bm）")
+    p_run.add_argument("--out-dir", default=None,
+                       help="产物目录（中间产物与日报都写这里；默认 out/）")
+    p_run.add_argument("--snapshot", default=None,
+                       help="上次快照文件（省略 = 首次运行，全部计入新增；给了路径但读不到即报错）")
+    p_run.add_argument("--data-root", default=None,
+                       help="数据根目录（订阅配置/归一表/别名表在 data/config/ 下；默认自动发现）")
 
     p_bench = sub.add_parser("bench", help="[M4] 真值基准：三套件一键跑通（生产实现实算 + 门槛判定）")
     p_bench.add_argument("--only", default=None, help="只跑指定套件（diff/pcode/subscribe）")
@@ -221,6 +230,12 @@ def main(argv=None):
     if args.command == "bench":
         from .bench import cmd_bench
         return cmd_bench(args)
+    if args.command == "digest":
+        from .report import cmd_digest
+        return cmd_digest(args)
+    if args.command == "run":
+        from .pipeline import cmd_run
+        return cmd_run(args)
     if args.command in NOT_READY_COMMANDS:
         return _not_ready(args.command)
 

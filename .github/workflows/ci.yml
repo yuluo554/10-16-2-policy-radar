@@ -48,14 +48,30 @@ jobs:
           python -m policy_radar version
           python -m policy_radar selftest --data-root data
 
-      - name: 未就绪子命令必须 exit 3（契约退出码接线：set +e + 显式断言；M4 后 bench 已落地，改用 digest）
+      - name: 已落地命令的用法错误必须 exit 2（digest 缺参；M5 后 digest/run 已落地，exit 3 契约整项退役）
         shell: bash
         run: |
           set +e
-          python -m policy_radar digest --new-items n.json
+          python -m policy_radar digest
+          code=$?
+          echo "digest (missing args) exit=$code"
+          test "$code" = "2"
+
+      - name: 日报渲染必须离线可达（M5 digest：冻结 diff 产物 + subscribe 产物 → Markdown/HTML，退出码 0）
+        shell: bash
+        run: |
+          set +e
+          python -m policy_radar diff --current data/snapshots/pair-B.json --out out/ci-diff.json --snapshot-out out/ci-snapshot.json
+          code_diff=$?
+          echo "diff exit=$code_diff"
+          test "$code_diff" = "0"
+          # 用冻结 diff 产物构造零命中的 subscribe 产物（CI 离线，ASCII 单行命令；
+          # 不用 heredoc——YAML 块内缩进会破坏 heredoc 终止符对齐）
+          python -c "import json;d=json.load(open('out/ci-diff.json',encoding='utf-8'));items=d['items'];h={'format':'policy-radar-subscribe','format_version':1,'item_count':len(items),'hit_count':0,'excluded_count':0,'zero_hit_count':len(items),'hits':[],'excluded':[],'zero_hit_ids':[it['id'] for it in items]};json.dump(h,open('out/ci-subscribe.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)"
+          python -m policy_radar digest --new-items out/ci-diff.json --hits out/ci-subscribe.json --out out/ci-report.md --format both
           code=$?
           echo "digest exit=$code"
-          test "$code" = "3"
+          test "$code" = "0"
 
       - name: 真值基准必须达标（M4 bench：三套件生产实现实算 + 门槛判定，联网无关）
         shell: bash

@@ -53,7 +53,7 @@ policy-radar selftest --data-root ./empty-dir
 | 0 | 成功完成 |
 | 1 | 完成但有降级 / 检出问题（有频道抓取失败、有条目未过 schema 校验被丢弃、基准未达标） |
 | 2 | 用法错误 / 输入不可用（未知子命令、参数错、输入文件缺失、坏格式） |
-| 3 | **能力未就绪**（骨架期专用；对应模块落地后整项退役） |
+| 3 | **能力未就绪**（语义保留的对外契约；M5 后全部子命令已落地，无调用方） |
 | 4 | 外部依赖不可用（网络不可达且**所有**频道都失败、API 返回非 200、API 结构异常、抓取自证不符） |
 
 ## 二、命令总表
@@ -67,8 +67,8 @@ policy-radar selftest --data-root ./empty-dir
 | `policy-radar diff` | M3 | 快照 diff：id/pcode 双键判定 + 规范序更新快照，exit 0/2 |
 | `policy-radar parse` | M3 | 文号三态解析 + 部门归一（别名表单一来源），exit 0/2 |
 | `policy-radar bench` | M4 | 真值基准：三套件生产实现实算 + 门槛判定（随数据下发），exit 0/1/2 |
-| `policy-radar digest` | M5 | **exit 3** |
-| `policy-radar run` | M5 | **exit 3** |
+| `policy-radar digest` | M5 | 中文日报生成：新增条目 + 订阅命中 → Markdown/HTML 双格式，exit 0/1/2 |
+| `policy-radar run` | M5 | 端到端编排：抓取→diff→解析→订阅→日报一条命令出结果，exit 0/1/2/4 |
 
 两条等价通路（`sys.path` 来源不同，**两者都要能跑**）：
 
@@ -85,8 +85,9 @@ policy-radar fetch --channel gwy --channel bm --pages 2 --n 20
 policy-radar diff --snapshot snapshots/last.json --current out/fetched.json
 policy-radar diff --current out/fetched.json
 policy-radar parse --input out/new-items.json --data-root data
-policy-radar digest --new-items out/new-items.json --format both
+policy-radar digest --new-items out/diff.json --hits out/subscribe.json --format both
 policy-radar run --channels gwy,bm --out-dir out
+policy-radar run --snapshot out/snapshot.json --out-dir out
 policy-radar bench --only diff --data-root data
 policy-radar verify-data --data-root data
 ```
@@ -268,10 +269,41 @@ policy-radar bench --only diff --data-root data
   解析恒 unparsed）→ 基准必须报未达标（exit 1）并逐条点名；探活打到
   **端到端入口**（CLI 层），见 `tests/test_subscribe_bench.py`。
 
-## 十一、品牌定位
+## 十一、中文日报与端到端编排（M5）
+
+```bash
+# 端到端：一条命令出结果（抓取 → diff → 解析 → 订阅 → 日报）
+policy-radar run --channels gwy,bm --out-dir out
+# 离线复现：diff 产物 + 订阅命中产物 → 日报（不联网）
+policy-radar digest --new-items out/diff.json --hits out/subscribe.json --parse out/parsed.json
+```
+
+- **日报（digest，模块 5）**：输入 = 新增清单（diff 产物，规范序）+ 订阅命中产物
+  （`policy-radar-subscribe`）+ 可选解析产物；输出 = **中文 Markdown + HTML 双格式**
+  （`--format md/html/both`，默认 both）。每条含标题 / 发布日期 / 频道 / 文号
+  （原文 + 解析结构）/ 发布部门（原文 + 归一结果）/ 原文链接 / 命中关键词 / 摘要；
+  缺任一字段显式渲染「**未提供**」，不静默略过、不编造。
+- **渲染层零判定（K9）**：日报只消费既有结论（diff 已判新增、subscribe 已判命中、
+  parse 已解析），不重算任何判定——AST 守门测试锁死 `report.py` 的调用面。
+- **零外链（本地可开）**：HTML 的**渲染资源**（脚本/样式/字体/图片引用）零外部引用，
+  CSS 全内联，断言**常驻在渲染出口**；条目自带的 `url` 是**原文链接**（内容字段），
+  不在"零外链"扫描面里。
+- **确定性**：日报无时间戳、无随机序，同输入**双跑逐字节一致**——可由
+  `data/snapshots/` + `data/config/` 完全复现（题面要求）。
+- **未过校验不进日报（FR-11）**：渲染前逐条 schema 校验，未过的**该条不进日报**
+  并计 `dropped_count`（exit 1 降级完成），不补编字段。
+- **无新增**：日报显式写"本次无新增"（不落空文件）。
+- **编排（run，一条命令）**：`fetch → diff → parse → subscribe → digest`，
+  中间产物全落 `--out-dir`（默认 `out/`，不入库）——每一步可单独复查与复跑；
+  `--snapshot` 给上次快照（省略 = 首跑语义与 `diff` 一致）；CLI 与编排函数
+  **行为等价**（CLI 统计 == 直调编排统计 == 报告统计，测试逐项对账）。
+- **退出码**：0 完成；1 降级完成（有频道 degraded / 有条目被丢弃 / 有条目未进日报）；
+  2 用法/输入错误；4 全部频道抓取失败（不产出任何文件）。
+
+## 十二、品牌定位
 
 本仓库独立成题，**不与任何其他项目共享品牌、代码或数据**；文档与代码中不含任何其他项目名称。
 
-## 十二、许可
+## 十三、许可
 
 MIT。数据来源为中国政府网公开信息，本工具只存元数据与链接，不归档正文。

@@ -52,66 +52,28 @@ def test_domain_exception_carries_exit_code():
     assert errors.DegradedError("x").code == errors.EXIT_DEGRADED
 
 
-# --- 未就绪子命令 exit 3 ----------------------------------------------------
+# --- 退出码 3：NOT_READY_COMMANDS 已随 M5 清空（语义保留，无调用方） ----------
 
-@pytest.mark.parametrize("command", sorted(NOT_READY_COMMANDS))
-def test_not_ready_commands_exit_3(command):
-    """骨架期未就绪子命令必须 exit 3，且**不产出空结果**（stderr 写明计划里程碑）。"""
-    proc = run_cli([command] + _min_args(command))
-    assert proc.returncode == errors.EXIT_NOT_READY, proc.stderr.decode("utf-8", "replace")
-    err = proc.stderr.decode("utf-8", "replace")
-    assert "尚未就绪" in err
-    assert proc.stdout == b"" or proc.stdout.decode("utf-8").strip() == ""
+def test_not_ready_commands_table_is_empty_after_m5():
+    """M5 落地 `digest`/`run` 后，全部子命令已实现 → `NOT_READY_COMMANDS` 必须为**空集**。
 
-
-def _min_args(command):
-    """未就绪命令所需的最小参数（argparse required 参数必须给全，否则 exit 2 掩盖 exit 3）。
-
-    `fetch` 已在 M2 落地、`diff`/`parse` 已在 M3 落地、`bench` 已在 M4 落地
-    -> 均从本表移除（K2 退役：凡断言某命令 exit 3 的地方，退役时逐处处置）。
+    退出码 3 的**语义与常量保留**（对外契约的一部分：README 退出码表已写、
+    `errors.EXIT_NOT_READY`/`NotReadyError` 不删），只是不再有调用方——
+    防的是"幽灵语义复活"：将来若有人往表里加回命令，这条测试所在的
+    `parametrize` 会自动恢复对该命令的 exit 3 断言（空表 = 无参数化用例，
+    但本条空集断言仍在）。
     """
-    required = {
-        "digest": ["--new-items", "n.json"],
-        "run": [],
-    }
-    return required[command]
-
-
-def test_not_ready_stderr_mentions_milestone():
-    """未就绪命令的 stderr 必须写明计划里程碑。
-
-    M4 后 `bench` 已落地（真值基准，0/1/2），**不能再断言它 exit 3** -> 改用仍在
-    未就绪状态的 `digest`（M5）。这条测试守的是"退出码 3 的提示语含里程碑"
-    这一契约，不是某一条具体命令。
-    """
-    proc = run_cli(["digest", "--new-items", "n.json"])
-    err = proc.stderr.decode("utf-8")
-    assert "M5" in err
-
-
-def test_fetch_diff_parse_bench_are_retired_from_not_ready():
-    """`fetch`（M2）/ `diff`、`parse`（M3）/ `bench`（M4）必须已从
-    `NOT_READY_COMMANDS` 移除（否则落地了还报"未就绪"）。子命令本身必须
-    仍然注册（只是不再 exit 3）。"""
-    for command in ("fetch", "diff", "parse", "bench"):
-        assert command not in NOT_READY_COMMANDS
-        assert command in _registered_commands(), \
-            "%s 子命令必须仍然注册（只是不再 exit 3）" % command
-
-
-def test_other_commands_still_not_ready():
-    """反向断言：退役只退 `fetch`/`diff`/`parse`/`bench`，其余命令的 exit 3
-    语义**不得**被顺手删掉。"""
-    assert set(NOT_READY_COMMANDS) == {"digest", "run"}
+    assert NOT_READY_COMMANDS == {}
     assert errors.EXIT_NOT_READY == 3
-    assert hasattr(errors, "NotReadyError"), "NOT_READY 通路（M5 还要用）不得整体删除"
+    assert hasattr(errors, "NotReadyError"), "退出码 3 的语义常量不得整体删除（对外契约）"
 
 
-def test_retired_commands_do_real_work_offline(tmp_path):
-    """M3/M4 退役的命令**真干活**（离线）：diff 判定真值一致、parse 解析真值一致、
-    bench 三套件达标退出 0。
+def test_retired_commands_do_real_work_offline(tmp_path, monkeypatch):
+    """M2–M5 退役的命令**真干活**（离线）：diff 判定真值一致、parse 解析真值一致、
+    bench 三套件达标退出 0、digest 真渲染日报、run 真编排（离线注入产物）。
 
-    这是"退役 ≠ 顺手删语义"的行为级证明：diff/parse 走 0/2、bench 走 0/1/2 退出码通路。
+    这是"退役 ≠ 顺手删语义"的行为级证明：diff/parse 走 0/2、bench 走 0/1/2、
+    digest/run 走 0/1/2 退出码通路。
     """
     from policy_radar.serialize import read_json
 
@@ -140,6 +102,83 @@ def test_retired_commands_do_real_work_offline(tmp_path):
 
     code_bench = main(["bench", "--data-root", data])
     assert code_bench == errors.EXIT_OK
+
+    # --- digest（M5 退役）：真渲染日报（离线） --------------------------------
+    from policy_radar.pipeline import load_subscribe_hits
+    from policy_radar.snapshot import load_items_file
+
+    new_items = load_items_file(out_diff)
+    subscribe_product = load_subscribe_hits(new_items, data)
+    out_subscribe = os.path.join(str(tmp_path), "subscribe.json")
+    from policy_radar.serialize import write_json as _write_json
+    _write_json(out_subscribe, subscribe_product)
+    out_md = os.path.join(str(tmp_path), "report.md")
+    out_html = os.path.join(str(tmp_path), "report.html")
+    code_digest = main(["digest", "--new-items", out_diff,
+                        "--hits", out_subscribe, "--parse", out_parse,
+                        "--out", out_md, "--format", "both"])
+    assert code_digest == errors.EXIT_OK
+    assert os.path.isfile(out_md)
+    assert os.path.isfile(os.path.join(str(tmp_path), "report.html"))
+    md_text = io.open(out_md, "r", encoding="utf-8").read()
+    assert "政策文件雷达" in md_text
+    truth_diff = read_json(os.path.join(data, "truth", "diff-truth.json"))
+    expected_new = truth_diff["expect"]["new_count"]
+    if expected_new:
+        assert "本次无新增" not in md_text
+
+    # --- run（M5 退役）：真编排（离线：monkeypatch 传输层为冻结样本，联网无关） --
+    # 与 fetch 测试同纪律：patch 打在调用方模块（pipeline）的绑定名上。
+    from policy_radar import pipeline as pipeline_mod
+    from policy_radar.fetch import build_output
+
+    meta_ok = {
+        "channel": "gwy", "channel_param": "zhengcelibrary_gwy", "status": "ok",
+        "pages": 1, "n": 6, "requested": 6, "returned": 6, "kept": 6,
+        "dropped": 0, "dropped_details": [], "declared_total": 6,
+        "captured_at": "2026-10-17T00:00:00", "page_details": [], "error": "",
+    }
+    fetched_path = os.path.join(str(tmp_path), "fetched-in.json")
+    _write_json(fetched_path, build_output(new_items, [meta_ok],
+                                           "2026-10-17T00:00:00"))
+    offline_items = load_items_file(fetched_path)
+    monkeypatch.setattr(pipeline_mod, "fetch_all",
+                        lambda *a, **kw: (offline_items, [meta_ok]))
+
+    run_out = os.path.join(str(tmp_path), "run")
+    code_run = main(["run", "--channels", "gwy", "--out-dir", run_out,
+                     "--data-root", data])
+    assert code_run == errors.EXIT_OK
+    run_report_md = os.path.join(run_out, "report.md")
+    assert os.path.isfile(run_report_md)
+    assert os.path.isfile(os.path.join(run_out, "report.html"))
+    for name in ("fetched.json", "diff.json", "snapshot.json", "parsed.json",
+                 "subscribe.json"):
+        assert os.path.isfile(os.path.join(run_out, name)), name
+
+    # 行为等价（编排层纪律）：直调编排（离线注入）的统计 == 报告内容与 CLI 通路逐字节一致。
+    stats = pipeline_mod.run_pipeline(
+        channels=["gwy"], out_dir=os.path.join(str(tmp_path), "run-direct"),
+        data_root=data, fetch_items=offline_items,
+        fetch_channel_meta=[meta_ok], captured_at="2026-10-17T00:00:00")
+    assert stats["new_count"] == len(offline_items)
+    # hit_count 是**命中记录数**（每词一条），不是条目数——条目级口径按 id 集合对账。
+    hit_entry_ids = {h["item_id"] for h in
+                     read_json(os.path.join(str(tmp_path), "run-direct",
+                                            "subscribe.json"))["hits"]}
+    zero_ids = set(read_json(os.path.join(str(tmp_path), "run-direct",
+                                          "subscribe.json"))["zero_hit_ids"])
+    excluded_ids = {e["item_id"] for e in
+                    read_json(os.path.join(str(tmp_path), "run-direct",
+                                           "subscribe.json"))["excluded"]}
+    new_ids = set(read_json(os.path.join(str(tmp_path), "run-direct",
+                                         "diff.json"))["new_ids"])
+    assert hit_entry_ids | zero_ids | excluded_ids == new_ids
+    assert not (hit_entry_ids & zero_ids) and not (hit_entry_ids & excluded_ids)
+    direct_md = io.open(os.path.join(str(tmp_path), "run-direct", "report.md"),
+                        "r", encoding="utf-8").read()
+    cli_md = io.open(run_report_md, "r", encoding="utf-8").read()
+    assert direct_md == cli_md
 
 
 # --- bench（M4）：退出码三语义 0 达标 / 1 未达标 / 2 用法错误 -----------------
