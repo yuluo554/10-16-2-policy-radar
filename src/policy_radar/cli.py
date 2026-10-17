@@ -1,10 +1,12 @@
 """CLI 入口：argparse 子命令、退出码、编码守卫。
 
-- `selftest` / `version` / `verify-data` / `fetch` **已实现且可证伪**；
-- `diff` / `parse` / `digest` / `run` / `bench` 一律 **exit 3（能力未就绪）**，
+- `selftest` / `version` / `verify-data` / `fetch` / `diff` / `parse`
+  **已实现且可证伪**；
+- `digest` / `run` / `bench` 一律 **exit 3（能力未就绪）**，
   **不伪造空结果**——退出码 3 在对应模块落地后整项退役（四处同步，见 errors.py）。
 
-`fetch` 的 exit 3 已在 M2 整项退役：它现在真抓取（0/1/2/4），再断言它 exit 3 会红。
+`fetch` 的 exit 3 已在 M2 整项退役（真抓取 0/1/2/4）；`diff` / `parse` 的
+exit 3 已在 M3 整项退役（0/2），再断言它们 exit 3 会红。
 """
 
 import argparse
@@ -20,10 +22,9 @@ from .paths import ENV_DATA_ROOT, find_data_root, missing_subdirs
 PROG = "policy-radar"
 
 #: 未就绪子命令 -> 计划落地的里程碑（退出码 3 的提示语，README 退出码表同源）。
-#: `fetch` 已在 M2 落地并从此表移除（K2 退役四处同步之一）。
+#: `fetch` 已在 M2 落地、`diff`/`parse` 已在 M3 落地，逐个从此表移除
+#: （K2 退役：落点不止"四处"，退役时用 `grep -rn "exit 3\|EXIT_NOT_READY"` 找全）。
 NOT_READY_COMMANDS = {
-    "diff": "M3 快照 diff 新增检测",
-    "parse": "M3 文号与部门解析",
     "digest": "M5 中文日报生成",
     "run": "M5 端到端编排",
     "bench": "M4 内置基准",
@@ -81,14 +82,22 @@ def build_parser():
     p_fetch.add_argument("--delay", type=float, default=1.5, help="逐请求抓取间延时（秒）")
     p_fetch.add_argument("--out", default=None, help="输出路径（默认 out/fetched.json）")
 
-    p_diff = sub.add_parser("diff", help="[M3] 快照 diff 新增检测")
-    p_diff.add_argument("--snapshot", required=True, help="上次快照文件")
-    p_diff.add_argument("--current", required=True, help="本次条目文件")
-    p_diff.add_argument("--out", default=None)
+    p_diff = sub.add_parser("diff", help="[M3] 快照 diff：新增/重复判定（id/pcode 双键）")
+    p_diff.add_argument("--snapshot", default=None,
+                        help="上次快照文件（省略 = 首次运行，全部计入新增；"
+                             "给了路径但读不到即报错，不静默当首跑）")
+    p_diff.add_argument("--current", required=True,
+                        help="本次条目文件（fetch 产物 / 快照 / diff 产物）")
+    p_diff.add_argument("--out", default=None, help="diff 产物路径（默认 out/diff.json）")
+    p_diff.add_argument("--snapshot-out", default=None,
+                        help="更新后的快照路径（默认 out/snapshot.json）")
 
-    p_parse = sub.add_parser("parse", help="[M3] 文号与部门解析")
-    p_parse.add_argument("--input", required=True)
-    p_parse.add_argument("--out", default=None)
+    p_parse = sub.add_parser("parse", help="[M3] 文号三态解析 + 部门归一")
+    p_parse.add_argument("--input", required=True,
+                         help="条目文件（fetch 产物 / 快照 / diff 产物）")
+    p_parse.add_argument("--out", default=None, help="解析产物路径（默认 out/parsed.json）")
+    p_parse.add_argument("--data-root", default=None,
+                         help="数据根目录（部门别名表在 data/config/ 下；默认自动发现）")
 
     p_digest = sub.add_parser("digest", help="[M5] 中文日报生成")
     p_digest.add_argument("--new-items", required=True)
@@ -201,6 +210,12 @@ def main(argv=None):
     if args.command == "fetch":
         from .fetch import cmd_fetch
         return cmd_fetch(args)
+    if args.command == "diff":
+        from .snapshot import cmd_diff
+        return cmd_diff(args)
+    if args.command == "parse":
+        from .parse import cmd_parse
+        return cmd_parse(args)
     if args.command in NOT_READY_COMMANDS:
         return _not_ready(args.command)
 

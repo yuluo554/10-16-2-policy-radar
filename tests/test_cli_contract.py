@@ -67,11 +67,10 @@ def test_not_ready_commands_exit_3(command):
 def _min_args(command):
     """未就绪命令所需的最小参数（argparse required 参数必须给全，否则 exit 2 掩盖 exit 3）。
 
-    `fetch` 已在 M2 落地，不再是"未就绪"命令 -> 从本表移除（K2 退役四处同步之一）。
+    `fetch` 已在 M2 落地、`diff`/`parse` 已在 M3 落地 -> 均从本表移除
+    （K2 退役：凡断言某命令 exit 3 的地方，退役时逐处处置）。
     """
     required = {
-        "diff": ["--snapshot", "s.json", "--current", "c.json"],
-        "parse": ["--input", "i.json"],
         "digest": ["--new-items", "n.json"],
         "run": [],
         "bench": [],
@@ -91,17 +90,51 @@ def test_not_ready_stderr_mentions_milestone():
     assert "M4" in err
 
 
-def test_fetch_is_retired_from_not_ready():
-    """`fetch` 必须已从 `NOT_READY_COMMANDS` 移除（否则 M2 落地了还报"未就绪"）。"""
-    assert "fetch" not in NOT_READY_COMMANDS
-    assert "fetch" in _registered_commands(), "fetch 子命令必须仍然注册（只是不再 exit 3）"
+def test_fetch_and_diff_parse_are_retired_from_not_ready():
+    """`fetch`（M2）/ `diff`、`parse`（M3）必须已从 `NOT_READY_COMMANDS` 移除
+    （否则落地了还报"未就绪"）。子命令本身必须仍然注册（只是不再 exit 3）。"""
+    for command in ("fetch", "diff", "parse"):
+        assert command not in NOT_READY_COMMANDS
+        assert command in _registered_commands(), \
+            "%s 子命令必须仍然注册（只是不再 exit 3）" % command
 
 
 def test_other_commands_still_not_ready():
-    """反向断言：退役只退 `fetch` 一条，其余命令的 exit 3 语义**不得**被顺手删掉。"""
-    assert set(NOT_READY_COMMANDS) == {"diff", "parse", "digest", "run", "bench"}
+    """反向断言：退役只退 `fetch`/`diff`/`parse`，其余命令的 exit 3 语义**不得**被顺手删掉。"""
+    assert set(NOT_READY_COMMANDS) == {"digest", "run", "bench"}
     assert errors.EXIT_NOT_READY == 3
-    assert hasattr(errors, "NotReadyError"), "NOT_READY 通路（M3/M4/M5 还要用）不得整体删除"
+    assert hasattr(errors, "NotReadyError"), "NOT_READY 通路（M4/M5 还要用）不得整体删除"
+
+
+def test_retired_commands_do_real_work_offline(tmp_path):
+    """M3 退役的双命令**真干活**（离线）：diff 判定真值一致、parse 解析真值一致。
+
+    这是"退役 ≠ 顺手删语义"的行为级证明：diff/parse 现在走 0/2 退出码通路。
+    """
+    from policy_radar.serialize import read_json
+
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data = os.path.join(root, "data")
+    path_a = os.path.join(data, "snapshots", "pair-A.json")
+    path_b = os.path.join(data, "snapshots", "pair-B.json")
+    out_diff = os.path.join(str(tmp_path), "diff.json")
+    out_snap = os.path.join(str(tmp_path), "snap.json")
+    out_parse = os.path.join(str(tmp_path), "parsed.json")
+
+    code_diff = main(["diff", "--snapshot", path_a, "--current", path_b,
+                      "--out", out_diff, "--snapshot-out", out_snap])
+    assert code_diff == errors.EXIT_OK
+    product = read_json(out_diff)
+    truth = read_json(os.path.join(data, "truth", "diff-truth.json"))
+    assert product["new_ids"] == truth["expect"]["new_ids"]
+    assert product["dup_ids"] == truth["expect"]["dup_ids"]
+
+    code_parse = main(["parse", "--input", path_b, "--data-root", data,
+                       "--out", out_parse])
+    assert code_parse == errors.EXIT_OK
+    parsed = read_json(out_parse)
+    assert parsed["item_count"] == 21
+    assert set(parsed["pcode_status_counts"]) == {"parsed", "partial", "unparsed"}
 
 
 def test_fetch_usage_error_exit_2_without_network():

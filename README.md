@@ -6,7 +6,7 @@
 
 - 形态：**纯本地 Python CLI**（无服务器、无 GPU、无账号、无遥测）
 - 数据源：中国政府网搜索 API 两个公开频道（国务院政策库 + 部委政策库）
-- 版本：`0.1.0`（M2 双源抓取；里程碑进度见 `plan/06-里程碑.md`）
+- 版本：`0.1.0`（M3 diff 与解析；里程碑进度见 `plan/06-里程碑.md`）
 - 方法论与全套计划文档：`plan/00-README总览.md`
 
 ---
@@ -24,6 +24,12 @@ policy-radar selftest --data-root data
 
 # 双源抓取：抓取国务院 + 部委两频道，写统一 schema 的条目文件
 policy-radar fetch --pages 1 --n 20 --delay 1.5 --out out/fetched.json
+
+# 快照 diff：相对上次快照判新增/重复（省略 --snapshot = 首次运行，全部计入新增）
+policy-radar diff --snapshot out/snapshot.json --current out/fetched.json
+
+# 文号解析 + 部门归一：三态（parsed/partial/unparsed），未解析显式标记
+policy-radar parse --input out/diff.json --data-root data
 
 # 数据自审：真值台账一致性核对（实算观测 vs 期望）
 policy-radar verify-data --data-root data
@@ -54,8 +60,8 @@ policy-radar selftest --data-root ./empty-dir
 | `policy-radar selftest` | M0 | 自检（可证伪），exit 0/1 |
 | `policy-radar verify-data` | M1 | 数据自审：真值台账一致性核对，exit 0/1/2 |
 | `policy-radar fetch` | M2 | 双源抓取：统一 schema 条目文件 + totalCount 对账，exit 0/1/2/4 |
-| `policy-radar diff` | M3 | **exit 3** |
-| `policy-radar parse` | M3 | **exit 3** |
+| `policy-radar diff` | M3 | 快照 diff：id/pcode 双键判定 + 规范序更新快照，exit 0/2 |
+| `policy-radar parse` | M3 | 文号三态解析 + 部门归一（别名表单一来源），exit 0/2 |
 | `policy-radar digest` | M5 | **exit 3** |
 | `policy-radar run` | M5 | **exit 3** |
 | `policy-radar bench` | M4 | **exit 3** |
@@ -73,7 +79,8 @@ python -m policy_radar version                    # 模块形态（需要 __main
 policy-radar fetch --pages 1 --n 20 --delay 1.5 --out out/fetched.json
 policy-radar fetch --channel gwy --channel bm --pages 2 --n 20
 policy-radar diff --snapshot snapshots/last.json --current out/fetched.json
-policy-radar parse --input out/new-items.json
+policy-radar diff --current out/fetched.json
+policy-radar parse --input out/new-items.json --data-root data
 policy-radar digest --new-items out/new-items.json --format both
 policy-radar run --channels gwy,bm --out-dir out
 policy-radar bench --only diff
@@ -151,7 +158,8 @@ python -m pytest -q
 | `plan/06-里程碑.md` | M0–M6 逐棒 DoD |
 | `plan/07-交付对标.md` | 评分维度逐条对标 |
 | `plan/HANDOFF-M2.md` | 跨会话交接（本棒入口） |
-| `plan/HANDOFF-M3.md` | 跨会话交接（下一棒零上下文续接） |
+| `plan/HANDOFF-M3.md` | 跨会话交接（M2 收尾产出，历史） |
+| `plan/HANDOFF-M4.md` | 跨会话交接（下一棒零上下文续接） |
 | `data/README.md` | 数据源三态记录 + M0/M1/M2 实测勘误 |
 | `data/config/README.md` | 规则数据（别名表/订阅/归一表）语义 |
 | `data/snapshots/README.md` | 预置快照对（字节冻结 fixtures）+ 五形态覆盖 |
@@ -209,10 +217,33 @@ policy-radar fetch --pages 1 --n 20 --delay 1.5 --out out/fetched.json
 - **硬失败**（exit 4）：API 结构异常、响应非 JSON、缺 `totalCount`、**抓取自证不符**。
   判别口径：传输层抖动可以隔离，**"接口在说谎"必须停**——否则下游会拿着错数据继续跑。
 
-## 九、品牌定位
+## 九、快照 diff 与解析（M3）
+
+```bash
+policy-radar diff --snapshot out/snapshot.json --current out/fetched.json
+policy-radar parse --input out/diff.json --data-root data
+```
+
+- **diff（模块 2）**：输入认本仓三类承载条目的产物（`policy-radar-fetch` /
+  `policy-radar-snapshot` / `policy-radar-diff`，按 `format` 分派，未知格式 exit 2）；
+  判定为 **id / pcode 双键**（`id` 相同 → 重复；否则 `pcode` 相同且非空 → 重复，
+  命中键写进 `matched_by` 供回溯）；产出**新增清单**（`--out`，默认 `out/diff.json`，
+  规范序）与**更新后的快照**（`--snapshot-out`，默认 `out/snapshot.json`，
+  按 `(pubtimeStr 倒序, id 升序)` 重排、无时间戳，与 M1 冻结快照形态逐字节同构）。
+- **首跑语义**：省略 `--snapshot` = 首次运行，全部计入新增且 stdout 明示；
+  **给了路径但读不到 = exit 2**，不静默回落成首跑（"路径打错"不得被读成"全是新发的"）。
+- **parse（模块 3）**：文号三态解析 `parsed/partial/unparsed`——支持 `〔〕` 与全角
+  `﹝﹞` 两对括号、`国令第847号` 无括号形态（**年份标"未解析"，不编造**）、
+  序号与"号"之间的空格；空 `pcode` 三字段全"未解析"。部门归一按 **`\s` 类空白**
+  拆分 `puborg`（实测分隔符含 U+2002），别名表**单一来源** `data/config/org-aliases.json`
+  （最长优先匹配），认不出的部门原样保留 + `alias_missing`，**不猜**。
+- **未挂原文不落库（K10 代码级门禁）**：快照/清单条目出现 `content`/`body`/`fulltext`
+  一类字段即拒——读、写两条路径都拦。
+
+## 十、品牌定位
 
 本仓库独立成题，**不与任何其他项目共享品牌、代码或数据**；文档与代码中不含任何其他项目名称。
 
-## 十、许可
+## 十一、许可
 
 MIT。数据来源为中国政府网公开信息，本工具只存元数据与链接，不归档正文。
