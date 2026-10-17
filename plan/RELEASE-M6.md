@@ -35,7 +35,7 @@ clone 到中立目录 `D:/ProgramData/zcode/10-16-2-clean-verify`（本地 git c
 
 **实测发现（不改代码）**：
 1. `run` 子命令**没有** `--delay` 参数（HANDOFF-M6 速查第 133 行写错；README 第十一节命令表是对的）——传了会被 argparse 拒为 exit 2（用法错误），口径自洽。
-2. 品牌隔离守门测试（`test_brand_isolation_no_sibling_tokens`）扫描面跳过表只含 `.venv`——venv **必须叫 `.venv`** 且建在仓库内才被跳过（叫 `.venv38` 会把 site-packages 里 pip/setuptools 的三字母词面扫进来误红——本文件首版就因此踩雷一次，措辞已改）。3.12 venv 建到仓库外规避。CI 用系统解释器不受影响（实测绿）。
+2. 品牌隔离守门测试（`test_brand_isolation_no_sibling_tokens`）扫描面跳过表只含 `.venv`——venv **必须叫 `.venv`** 且建在仓库内才被跳过（叫 `.venv38` 会把 site-packages 里 pip/setuptools 的三字母词面扫进来误红）；**同理，写文档时不得复述词表词面本身**（本文首版即踩雷一次，CI 实红一次后改措辞恢复绿——这是 M6 唯一一次 CI 红）。3.12 venv 建到仓库外规避。CI 用系统解释器不受影响（实测绿）。
 3. HANDOFF-M5 写的"321 项"与本棒实测一致（首验时误读短输出成 81，重收集确认为 321）。
 
 ## 三、建仓 + CI 首跑
@@ -59,7 +59,9 @@ clone 到中立目录 `D:/ProgramData/zcode/10-16-2-clean-verify`（本地 git c
 | push main（9b82986，2 个提交一次性上去） | 38999630365（CI / main / push） | success |
 | push tag v0.1.0 | 39001429887（CI / v0.1.0 / push） | success |
 
-**push 数 2 = run 数 2**，全 success。tag `v0.1.0` 已推（annotated，指向 9b82986），Release `v0.1.0（M6 发布）` 已建（Latest）。
+**发布时点对账：push 数 2 = run 数 2，全 success。** tag `v0.1.0` 已推（annotated，指向 9b82986），Release `v0.1.0（M6 发布）` 已建（Latest）。
+
+**发布后追加（留档诚实口径）**：tag/Release 之后又推了两个留档提交——`c3c0217`（M6 收官文档）触发 run 39001773057 **failure**（本文首版描述 venv 误报机制时写了词表里的三字母词面，踩进品牌隔离守门）；`5e6b17d` 改措辞后 run 39001830266 **success**，本地双解释器全量同步恢复绿。最终态：**4 push = 4 run，3 绿 1 红（红因已修复，最新提交绿）**。教训已并入第二节第 2 条与 WRAPUP-M6。
 
 ## 六、未跑的项（⬜ + 原因）
 
