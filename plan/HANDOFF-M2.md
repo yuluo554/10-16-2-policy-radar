@@ -59,6 +59,7 @@
    - 抓取目标只从 API 返回的 `url` 字段取值（**不拼 URL**，决策 D2）；
    - 抓取时间戳**只进元信息**，不参与任何判定（无时钟参与判定）。
 2. **CLI `fetch` 整项退役 exit 3**（K2 **四处同步**：删 `NOT_READY_COMMANDS` 里的 `fetch` 条目 → 改 `tests/test_cli_contract.py` 的 `_min_args` 与参数化 → 改 README 命令表与退出码表 → 改 `plan/00` 决策记录）。**注意**：`NOT_READY_COMMANDS` 仍含 `diff/parse/digest/run/bench`，`_not_ready` 通路与 `EXIT_NOT_READY` 常量**不能整体删除**（M3/M4/M5 还要用）。
+   **`tests/test_cli_contract.py` 里三处涉及 `fetch`，逐处处置**：① `_min_args` 的 `"fetch": []` 条目 → 删（该命令不再是"未就绪"）；② `@pytest.mark.parametrize("command", sorted(NOT_READY_COMMANDS))` 会自动不再覆盖 fetch（删条目即生效）；③ **`test_not_ready_stderr_mentions_milestone`（第 81 行附近）显式用 `run_cli(["fetch"])` 断言 stderr 含 "M2"** → 必须改（M2 落地后 fetch 不再走 `_not_ready` 通路），可改为对仍在未就绪状态的 `bench`（M4）或 `digest`（M5）断言里程碑字样。④ `test_unknown_channel_choice_exit_2`（`fetch --channel nope` 期望 exit 2）**保持有效**（argparse 的 `choices` 校验不随实现改变）。
 3. **离线回归测试**：真实抓取产出与 `data/samples/` 留档样本 schema **逐字段一致**（**用冻结样本，不打真站点**——`tests/test_samples_regression.py` 已铺好 `items_from_listvo` 通路）。
 4. **网络不可达 exit 4 且不留半个产物**（原子写）；总条数对账行真打印（`请求 N 条 / 声明 totalCount M / 实际 K`）。
 5. 双解释器全量测试绿 → 回写 `plan/00`/`06` 状态 → **写 `plan/HANDOFF-M3.md`** → commit。
