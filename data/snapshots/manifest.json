@@ -1,0 +1,54 @@
+{
+  "counts": {
+    "a_items": 20,
+    "b_items": 21,
+    "expected_dup": 15,
+    "expected_new": 6
+  },
+  "coverage": {
+    "declared_shapes": [
+      "carried",
+      "empty_pcode_new",
+      "empty_pcode_same",
+      "fresh",
+      "pcode_dup"
+    ],
+    "role_counts": {
+      "carried": 13,
+      "empty_pcode_new": 1,
+      "empty_pcode_same": 1,
+      "fresh": 5,
+      "pcode_dup": 1
+    },
+    "sampled_shapes": [
+      "carried",
+      "empty_pcode_new",
+      "empty_pcode_same",
+      "fresh",
+      "pcode_dup"
+    ],
+    "sampling_note": "五类形态各至少 1 条；**抽样覆盖、非穷举**（观测池 60 条）"
+  },
+  "files": [
+    {
+      "bytes": 14470,
+      "file": "pair-A.json",
+      "sha256": "38954b1b62ec9a47334bdea5e062f6112af1e89596f64145db8b971bd2ec035d"
+    },
+    {
+      "bytes": 15096,
+      "file": "pair-B.json",
+      "sha256": "525c48a71c37425ca951f24bdcfbc1f51658b6f1677dc987d524dacb0b24054d"
+    }
+  ],
+  "format": "policy-radar-snapshot",
+  "format_version": 1,
+  "generator": "tools/gen_snapshot_pairs.py",
+  "note": "预置快照对清单：字节冻结（禁手改），重生成须整目录重跑并更新 sha256。",
+  "seed": 20261017,
+  "thresholds": {
+    "diff_dup_accuracy": 1.0,
+    "diff_new_accuracy": 1.0,
+    "note": "首期基准门槛：新增/重复判定准确率必须 100%（真值逐条对账）"
+  }
+}

@@ -5,6 +5,8 @@
 data/samples/*.json -text
 data/snapshots/*.json -text
 data/truth/*.json -text
+# 规则数据同为生成器产物，`--check` 做逐字节比对 → 同样需防 EOL 改写
+data/config/*.json -text
 
 *.png binary
 *.jpg binary

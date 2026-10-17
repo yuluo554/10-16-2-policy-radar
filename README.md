@@ -6,7 +6,7 @@
 
 - 形态：**纯本地 Python CLI**（无服务器、无 GPU、无账号、无遥测）
 - 数据源：中国政府网搜索 API 两个公开频道（国务院政策库 + 部委政策库）
-- 版本：`0.1.0`（M0 骨架；里程碑进度见 `plan/06-里程碑.md`）
+- 版本：`0.1.0`（M1 数据先行；里程碑进度见 `plan/06-里程碑.md`）
 - 方法论与全套计划文档：`plan/00-README总览.md`
 
 ---
@@ -21,6 +21,9 @@ pip install -e ".[dev]"
 # 查看版本与自检
 policy-radar version
 policy-radar selftest --data-root data
+
+# 数据自审：真值台账一致性核对（实算观测 vs 期望）
+policy-radar verify-data --data-root data
 
 # 自检必须"可证伪"：把数据根指向空目录会返回非 0
 policy-radar selftest --data-root ./empty-dir
@@ -46,6 +49,7 @@ policy-radar selftest --data-root ./empty-dir
 |---|---|---|
 | `policy-radar version` | M0 | 打印版本号，exit 0 |
 | `policy-radar selftest` | M0 | 自检（可证伪），exit 0/1 |
+| `policy-radar verify-data` | M1 | 数据自审：真值台账一致性核对，exit 0/1/2 |
 | `policy-radar fetch` | M2 | **exit 3**（未就绪） |
 | `policy-radar diff` | M3 | **exit 3** |
 | `policy-radar parse` | M3 | **exit 3** |
@@ -69,6 +73,7 @@ policy-radar parse --input out/new-items.json
 policy-radar digest --new-items out/new-items.json --format both
 policy-radar run --channels gwy,bm --out-dir out
 policy-radar bench --only diff
+policy-radar verify-data --data-root data
 ```
 
 ## 三、数据源与局限（⚠️ 局限原样披露）
@@ -88,9 +93,15 @@ policy-radar bench --only diff
    抓取目标 URL 一律以 API 返回的 `url` 字段为准，**不自行拼路径**。
 3. **部委频道 `index` 字段为空**：实测 30/30 为空 → 去重主键用 `id`，`index` 只作副键。
 4. **`pcode` 可空**：部委频道实测 3/30 为空 → 文号字段可空，解析失败**显式标"未解析"**，不编造。
-5. **首期只接两个频道**：地方政策库、部委站点直抓**未覆盖**（列扩展项，不计入首期验收）。
-6. **只存元数据与链接**：不做全文下载归档；快照不含政策正文。
-7. **不做政策解读/咨询**：只做"新发变更提醒"，不输出任何解读观点。
+5. **文号形态比题面更杂**：实测含 `国令第847号`（无年份）、`国知发服字〔2026〕29号`（多字代字）、
+   **全角括号 `﹝﹞`**（码位与 `〔〕` 不同）、**序号与"号"间有空格**（`农农发〔2026〕9 号`）等形态。
+6. **`puborg` 多部门分隔符不止半角空格**：实测含 **U+2002 EN SPACE**，且**同一条内混用**两种空格 →
+   归一化按 `\s` 类空白拆分，**不能只按 `' '`**。
+7. **首期只接两个频道**：地方政策库、部委站点直抓**未覆盖**（列扩展项，不计入首期验收）。
+8. **只存元数据与链接**：不做全文下载归档；快照不含政策正文。
+9. **不做政策解读/咨询**：只做"新发变更提醒"，不输出任何解读观点。
+10. **真值基准是抽样覆盖**：预置快照对取自两频道各 30 条观测池（非全量普查）；
+    覆盖声明逐形态登记"规则包总数 / 采样数 / 采样清单"，并显式标注"抽样覆盖、非穷举"。
 
 **平台礼仪**：遵守 gov.cn 限频，逐页抓取加延时，不做高并发压测。
 **隐私红线**：纯本地运行，无任何遥测、无账号、无上传；运行时零第三方依赖，只对该域名发只读 GET。
@@ -132,16 +143,41 @@ python -m pytest -q
 | `plan/06-里程碑.md` | M0–M6 逐棒 DoD |
 | `plan/07-交付对标.md` | 评分维度逐条对标 |
 | `plan/HANDOFF-M1.md` | 跨会话交接（下一棒零上下文续接） |
-| `data/README.md` | 数据源三态记录 + M0 实测勘误 |
-| `data/config/README.md` | 规则数据（别名表/订阅/归一表） |
-| `data/snapshots/README.md` | 预置快照对（字节冻结 fixtures） |
-| `data/truth/README.md` | 真值台账（只存输入与期望） |
-| `data/samples/README.md` | 真实 API 响应样本（离线回归） |
+| `data/README.md` | 数据源三态记录 + M0/M1 实测勘误 |
+| `data/config/README.md` | 规则数据（别名表/订阅/归一表）语义 |
+| `data/snapshots/README.md` | 预置快照对（字节冻结 fixtures）+ 五形态覆盖 |
+| `data/truth/README.md` | 真值台账语义（expect/also_expect、对账单一源、三问） |
+| `data/samples/README.md` | 真实 API 响应样本（离线回归）+ 逐份 sha256 |
 
-## 七、品牌定位
+## 七、数据自审（M1）
+
+```bash
+policy-radar verify-data --data-root data
+```
+
+把 `data/truth/` 的**输入**喂给**参照实现**（`src/policy_radar/cases.py`）**实算**一遍，
+再用**共用对账语义**与真值库里的**期望**逐条比对 → 输出
+`3 套件全部自洽（比对 119 条）`、exit 0。
+
+它**可证伪**（实测过）：把真值改坏 → 报差异并**点名哪几条**（如
+`new_ids 多出：['26782365']`）、exit 1；真值库注入 `observed_*` 字段 → 报 K11 违规、exit 1。
+
+**它不是基准**：本命令只核"真值库自身是否自洽"（期望可否由输入独立复算）；
+跑生产实现的达标判定是 M4 `bench` 的事。
+
+四个生成器各有**两层位级守门**（`--check`）：
+
+```bash
+py -3.8 -X utf8 tools/gen_snapshot_pairs.py --check
+py -3.8 -X utf8 tools/gen_pcode_cases.py --check
+py -3.8 -X utf8 tools/gen_subscribe_cases.py --check
+py -3.8 -X utf8 tools/gen_truth_manifest.py --check
+```
+
+## 八、品牌定位
 
 本仓库独立成题，**不与任何其他项目共享品牌、代码或数据**；文档与代码中不含任何其他项目名称。
 
-## 八、许可
+## 九、许可
 
 MIT。数据来源为中国政府网公开信息，本工具只存元数据与链接，不归档正文。

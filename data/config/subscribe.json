@@ -1,0 +1,23 @@
+{
+  "dedup_rule": "dedup_by_normalized_keyword_preserve_config_order",
+  "exclude": [
+    "复函",
+    "条例"
+  ],
+  "exclude_policy": "drop_item_entirely",
+  "field_priority": [
+    "title",
+    "summary"
+  ],
+  "include": [
+    "规划",
+    "十五五",
+    "\"十五五\"",
+    "电商",
+    "保险",
+    "碳排放",
+    "规划"
+  ],
+  "match_rule": "substring_containment_after_normalization",
+  "note": "订阅配置样例（M1）：含多关键词、排除词、重复词三类边界样本；关键词取自观测池真实文本，不预置业务热词（决策 P4 按推荐默认执行）。"
+}

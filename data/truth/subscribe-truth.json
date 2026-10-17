@@ -1,0 +1,277 @@
+{
+  "also_expect": {
+    "duplicate_config_deduped": true,
+    "exclude_and_include_sample_present": true,
+    "exclude_only_sample_present": true,
+    "hit_items_never_excluded": true,
+    "normalized_fullwidth_sample_present": true,
+    "zero_hit_items_have_no_include_match": true
+  },
+  "case": "subscribe-hits",
+  "case_kind": "keyword-subscription",
+  "coverage": {
+    "boundary_shapes": {
+      "duplicate_keyword_dedup": 1,
+      "exclude_and_include": 1,
+      "exclude_only": 2,
+      "multi_keyword": 10,
+      "normalized_fullwidth": 10,
+      "zero_hit": 5
+    },
+    "corpus_items": 21,
+    "exclude_after_dedup": 2,
+    "exclude_configured": 2,
+    "include_after_dedup": 6,
+    "include_configured": 7,
+    "sampling_note": "语料 = 预置快照对 B 侧（21 条，取自真实观测池）；**抽样覆盖、非穷举**"
+  },
+  "expect": {
+    "excluded": [
+      {
+        "include_matched_before_exclusion": [],
+        "item_id": "26598004",
+        "matched_exclude": [
+          "条例"
+        ]
+      },
+      {
+        "include_matched_before_exclusion": [
+          "十五五",
+          "\"十五五\""
+        ],
+        "item_id": "26475541",
+        "matched_exclude": [
+          "复函"
+        ]
+      },
+      {
+        "include_matched_before_exclusion": [],
+        "item_id": "26437655",
+        "matched_exclude": [
+          "条例"
+        ]
+      }
+    ],
+    "excluded_count": 3,
+    "hit_count": 32,
+    "hits": [
+      {
+        "field": "title",
+        "item_id": "26795802",
+        "keyword": "规划",
+        "offset": 21
+      },
+      {
+        "field": "title",
+        "item_id": "26795802",
+        "keyword": "十五五",
+        "offset": 17
+      },
+      {
+        "field": "title",
+        "item_id": "26795802",
+        "keyword": "\"十五五\"",
+        "offset": 16
+      },
+      {
+        "field": "title",
+        "item_id": "26782365",
+        "keyword": "电商",
+        "offset": 13
+      },
+      {
+        "field": "summary",
+        "item_id": "26736877",
+        "keyword": "规划",
+        "offset": 94
+      },
+      {
+        "field": "title",
+        "item_id": "26737443",
+        "keyword": "保险",
+        "offset": 21
+      },
+      {
+        "field": "title",
+        "item_id": "26686986",
+        "keyword": "规划",
+        "offset": 22
+      },
+      {
+        "field": "title",
+        "item_id": "26686986",
+        "keyword": "十五五",
+        "offset": 18
+      },
+      {
+        "field": "title",
+        "item_id": "26686986",
+        "keyword": "\"十五五\"",
+        "offset": 17
+      },
+      {
+        "field": "title",
+        "item_id": "26681554",
+        "keyword": "规划",
+        "offset": 26
+      },
+      {
+        "field": "title",
+        "item_id": "26681554",
+        "keyword": "十五五",
+        "offset": 22
+      },
+      {
+        "field": "title",
+        "item_id": "26681554",
+        "keyword": "\"十五五\"",
+        "offset": 21
+      },
+      {
+        "field": "title",
+        "item_id": "26674126",
+        "keyword": "规划",
+        "offset": 22
+      },
+      {
+        "field": "title",
+        "item_id": "26674126",
+        "keyword": "十五五",
+        "offset": 18
+      },
+      {
+        "field": "title",
+        "item_id": "26674126",
+        "keyword": "\"十五五\"",
+        "offset": 17
+      },
+      {
+        "field": "title",
+        "item_id": "26674130",
+        "keyword": "规划",
+        "offset": 32
+      },
+      {
+        "field": "title",
+        "item_id": "26674130",
+        "keyword": "十五五",
+        "offset": 28
+      },
+      {
+        "field": "title",
+        "item_id": "26674130",
+        "keyword": "\"十五五\"",
+        "offset": 27
+      },
+      {
+        "field": "title",
+        "item_id": "26660325",
+        "keyword": "规划",
+        "offset": 23
+      },
+      {
+        "field": "title",
+        "item_id": "26660325",
+        "keyword": "十五五",
+        "offset": 19
+      },
+      {
+        "field": "title",
+        "item_id": "26660325",
+        "keyword": "\"十五五\"",
+        "offset": 18
+      },
+      {
+        "field": "title",
+        "item_id": "26611060",
+        "keyword": "规划",
+        "offset": 25
+      },
+      {
+        "field": "title",
+        "item_id": "26611060",
+        "keyword": "十五五",
+        "offset": 21
+      },
+      {
+        "field": "title",
+        "item_id": "26611060",
+        "keyword": "\"十五五\"",
+        "offset": 20
+      },
+      {
+        "field": "title",
+        "item_id": "26309971",
+        "keyword": "十五五",
+        "offset": 9
+      },
+      {
+        "field": "title",
+        "item_id": "26309971",
+        "keyword": "\"十五五\"",
+        "offset": 8
+      },
+      {
+        "field": "title",
+        "item_id": "26297919",
+        "keyword": "规划",
+        "offset": 17
+      },
+      {
+        "field": "title",
+        "item_id": "26297919",
+        "keyword": "十五五",
+        "offset": 13
+      },
+      {
+        "field": "title",
+        "item_id": "26297919",
+        "keyword": "\"十五五\"",
+        "offset": 12
+      },
+      {
+        "field": "title",
+        "item_id": "26276349",
+        "keyword": "规划",
+        "offset": 19
+      },
+      {
+        "field": "title",
+        "item_id": "26276349",
+        "keyword": "十五五",
+        "offset": 15
+      },
+      {
+        "field": "title",
+        "item_id": "26276349",
+        "keyword": "\"十五五\"",
+        "offset": 14
+      }
+    ],
+    "matched_item_count": 13,
+    "zero_hit_count": 5,
+    "zero_hit_item_ids": [
+      "26772701",
+      "26680761",
+      "26665196",
+      "26628029",
+      "26385742"
+    ]
+  },
+  "input": {
+    "config": "config/subscribe.json",
+    "corpus": "snapshots/pair-B.json",
+    "corpus_size": 21,
+    "normalize": "config/normalize.json"
+  },
+  "semantics": {
+    "dedup": "同词重复配置按归一后关键词去重，保持配置顺序",
+    "exclude": "任一 exclude 命中即整条剔除（不产命中记录）",
+    "field_priority": [
+      "title",
+      "summary"
+    ],
+    "match": "归一化后子串包含（title 优先，其次 summary）",
+    "offset": "命中词在**原始字段文本**中的起始下标（归一表长度保持，故与归一后同值）"
+  }
+}

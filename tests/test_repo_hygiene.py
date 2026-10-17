@@ -80,6 +80,40 @@ def test_data_subdirs_have_readme():
         assert os.path.isfile(os.path.join(ROOT, d, "README.md")), d
 
 
+# --- 字节冻结保护（M1：所有走逐字节比对的产物目录都要 -text） ----------------
+
+#: 参与逐字节比对 / sha256 校验的数据目录（相对仓库根）。
+#: `data/config/` 也在此列：它的三份规则数据由生成器产出，`--check` 做逐字节比对。
+BYTE_FROZEN_DIRS = ("data/samples", "data/snapshots", "data/truth", "data/config")
+
+
+def test_gitattributes_marks_all_byte_frozen_dirs_as_binary():
+    """**实测抓出的缺口**：`data/config/*.json` 由生成器产出且 `--check` 逐字节比对，
+    但最初漏了 `-text` → 克隆时 EOL 归一化会改写字节、使位级守门跨平台假红。
+
+    判据：`data/{samples,snapshots,truth,config}/*.json` 每一条都必须在
+    `.gitattributes` 里显式标 `-text`（只靠 `* text=auto eol=lf` 不够——
+    那是"归一化"而非"冻结"）。
+    """
+    text = _read(os.path.join(ROOT, ".gitattributes"))
+    lines = [ln.strip() for ln in text.splitlines()
+             if ln.strip() and not ln.strip().startswith("#")]
+    missing = []
+    for d in BYTE_FROZEN_DIRS:
+        pattern = "%s/*.json -text" % d
+        if pattern not in lines:
+            missing.append(pattern)
+    assert missing == [], "以下目录未标 `-text`（克隆后字节可能被改写）：%r" % missing
+
+
+def test_gitattributes_scan_surface_not_empty():
+    """扫描面非空自证（防"探针读到空文件 → 永不红"）。"""
+    text = _read(os.path.join(ROOT, ".gitattributes"))
+    patterns = [ln.strip() for ln in text.splitlines()
+                if ln.strip() and not ln.strip().startswith("#")]
+    assert len(patterns) >= 4, patterns
+
+
 # --- 品牌隔离（题面第六节第 6 条：不含任何姊妹项目字样） --------------------
 
 #: 姊妹项目词族（**词面不入库**：本守门是"判定词表"，扩词表是正常维护动作）。

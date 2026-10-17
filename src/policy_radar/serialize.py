@@ -54,6 +54,16 @@ def write_json(path, obj):
     _atomic_write_bytes(path, dumps_json(obj).encode("utf-8"))
 
 
+def write_bytes(path, data):
+    """原子写**原始字节**（不经 JSON 序列化）。
+
+    用途：冻结**外部来源**的字节（如真实 API 响应样本）——这类产物的价值在于
+    "那一刻对方真返回了什么"，重新 `json.dumps` 会把"字节冻结纪律"偷换成
+    "我们的序列化器输出了什么"。仍走原子写（临时文件 → rename），保持写盘单点。
+    """
+    _atomic_write_bytes(path, data)
+
+
 def write_text(path, text):
     """原子写文本产物；行尾归一为 LF，且**结尾恰好一个换行**。
 

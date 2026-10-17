@@ -66,6 +66,11 @@ def build_parser():
     p_self.add_argument("--data-root", default=None,
                         help="数据根目录（默认自动发现；测试/演示须显式传）")
 
+    p_verify = sub.add_parser("verify-data",
+                              help="[M1] 数据自审：真值台账一致性核对（实算观测 vs 期望）")
+    p_verify.add_argument("--data-root", default=None,
+                          help="数据根目录（默认自动发现；测试/演示须显式传）")
+
     p_fetch = sub.add_parser("fetch", help="[M2] 双源抓取")
     p_fetch.add_argument("--channel", choices=["gwy", "bm"], default="gwy")
     p_fetch.add_argument("--pages", type=int, default=1)
@@ -187,6 +192,9 @@ def main(argv=None):
         return cmd_version(args)
     if args.command == "selftest":
         return cmd_selftest(args)
+    if args.command == "verify-data":
+        from .verify import cmd_verify_data
+        return cmd_verify_data(args)
     if args.command in NOT_READY_COMMANDS:
         return _not_ready(args.command)
 

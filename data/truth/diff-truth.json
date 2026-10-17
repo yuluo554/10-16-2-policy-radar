@@ -1,0 +1,217 @@
+{
+  "also_expect": {
+    "dup_ids_all_traceable_to_a": true,
+    "new_ids_absent_from_a": true,
+    "pcode_dup_matched_by_pcode": true
+  },
+  "case": "snapshot-pair-A-B",
+  "case_kind": "diff-new-vs-duplicate",
+  "cases": {
+    "dup": [
+      {
+        "item_id": "26276349",
+        "matched_by": "pcode",
+        "pcode": "农机发〔2026〕5号",
+        "role": "pcode_dup",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26297919",
+        "matched_by": "id",
+        "pcode": "国函〔2026〕61号",
+        "role": "carried",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26309971",
+        "matched_by": "id",
+        "pcode": "国发〔2026〕22号",
+        "role": "carried",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26437655",
+        "matched_by": "id",
+        "pcode": "国令第842号",
+        "role": "carried",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26475541",
+        "matched_by": "id",
+        "pcode": "国办函〔2026〕71号",
+        "role": "carried",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26598004",
+        "matched_by": "id",
+        "pcode": "国令第845号",
+        "role": "carried",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26611060",
+        "matched_by": "id",
+        "pcode": "工信部规〔2026〕188号",
+        "role": "carried",
+        "source": "bm"
+      },
+      {
+        "item_id": "26660325",
+        "matched_by": "id",
+        "pcode": "文旅政法发〔2026〕60号",
+        "role": "carried",
+        "source": "bm"
+      },
+      {
+        "item_id": "26674126",
+        "matched_by": "id",
+        "pcode": "文旅产业发〔2026〕61号",
+        "role": "carried",
+        "source": "bm"
+      },
+      {
+        "item_id": "26674130",
+        "matched_by": "id",
+        "pcode": "农机发〔2026〕5号",
+        "role": "carried",
+        "source": "bm"
+      },
+      {
+        "item_id": "26680761",
+        "matched_by": "id",
+        "pcode": "国卫办医政函〔2026〕305号",
+        "role": "carried",
+        "source": "bm"
+      },
+      {
+        "item_id": "26681554",
+        "matched_by": "id",
+        "pcode": "文旅公共发〔2026〕63号",
+        "role": "carried",
+        "source": "bm"
+      },
+      {
+        "item_id": "26737443",
+        "matched_by": "id",
+        "pcode": "金发〔2026〕17号",
+        "role": "carried",
+        "source": "bm"
+      },
+      {
+        "item_id": "26772701",
+        "matched_by": "id",
+        "pcode": "国函〔2026〕105号",
+        "role": "carried",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26795802",
+        "matched_by": "id",
+        "pcode": "",
+        "role": "empty_pcode_same",
+        "source": "bm"
+      }
+    ],
+    "new": [
+      {
+        "item_id": "26385742",
+        "pcode": "国发〔2026〕26号",
+        "role": "fresh",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26628029",
+        "pcode": "国办发〔2026〕24号",
+        "role": "fresh",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26665196",
+        "pcode": "国办发〔2026〕26号",
+        "role": "fresh",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26686986",
+        "pcode": "国新出发〔2026〕8号",
+        "role": "fresh",
+        "source": "bm"
+      },
+      {
+        "item_id": "26736877",
+        "pcode": "国函〔2026〕99号",
+        "role": "fresh",
+        "source": "gwy"
+      },
+      {
+        "item_id": "26782365",
+        "pcode": "",
+        "role": "empty_pcode_new",
+        "source": "bm"
+      }
+    ]
+  },
+  "dedup_keys": {
+    "primary": "id",
+    "secondary": "pcode_nonempty"
+  },
+  "expect": {
+    "dup_count": 15,
+    "dup_ids": [
+      "26276349",
+      "26297919",
+      "26309971",
+      "26437655",
+      "26475541",
+      "26598004",
+      "26611060",
+      "26660325",
+      "26674126",
+      "26674130",
+      "26680761",
+      "26681554",
+      "26737443",
+      "26772701",
+      "26795802"
+    ],
+    "matched_by": {
+      "26276349": "pcode",
+      "26297919": "id",
+      "26309971": "id",
+      "26437655": "id",
+      "26475541": "id",
+      "26598004": "id",
+      "26611060": "id",
+      "26660325": "id",
+      "26674126": "id",
+      "26674130": "id",
+      "26680761": "id",
+      "26681554": "id",
+      "26737443": "id",
+      "26772701": "id",
+      "26795802": "id"
+    },
+    "new_count": 6,
+    "new_ids": [
+      "26385742",
+      "26628029",
+      "26665196",
+      "26686986",
+      "26736877",
+      "26782365"
+    ]
+  },
+  "input": {
+    "snapshot_a": "snapshots/pair-A.json",
+    "snapshot_b": "snapshots/pair-B.json"
+  },
+  "role_counts": {
+    "carried": 13,
+    "empty_pcode_new": 1,
+    "empty_pcode_same": 1,
+    "fresh": 5,
+    "pcode_dup": 1
+  }
+}

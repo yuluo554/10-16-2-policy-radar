@@ -1,0 +1,177 @@
+{
+  "case": "truth-manifest",
+  "coverage": [
+    {
+      "case": "diff-truth.json",
+      "declared_shapes": [
+        "carried",
+        "fresh",
+        "pcode_dup",
+        "empty_pcode_new",
+        "empty_pcode_same"
+      ],
+      "rule_package": "K4 双键判定（id 主键 / pcode 非空并入）",
+      "sampled_shapes": [
+        "carried",
+        "empty_pcode_new",
+        "empty_pcode_same",
+        "fresh",
+        "pcode_dup"
+      ],
+      "sampled_total": 21,
+      "sampling_list": {
+        "dup_ids": [
+          "26276349",
+          "26297919",
+          "26309971",
+          "26437655",
+          "26475541",
+          "26598004",
+          "26611060",
+          "26660325",
+          "26674126",
+          "26674130",
+          "26680761",
+          "26681554",
+          "26737443",
+          "26772701",
+          "26795802"
+        ],
+        "matched_by": {
+          "26276349": "pcode",
+          "26297919": "id",
+          "26309971": "id",
+          "26437655": "id",
+          "26475541": "id",
+          "26598004": "id",
+          "26611060": "id",
+          "26660325": "id",
+          "26674126": "id",
+          "26674130": "id",
+          "26680761": "id",
+          "26681554": "id",
+          "26737443": "id",
+          "26772701": "id",
+          "26795802": "id"
+        },
+        "new_ids": [
+          "26385742",
+          "26628029",
+          "26665196",
+          "26686986",
+          "26736877",
+          "26782365"
+        ]
+      },
+      "sampling_note": "预置快照对 A(20)/B(21)，取自真实观测池 60 条；**抽样覆盖、非穷举**",
+      "shape_sample_counts": {
+        "carried": 13,
+        "empty_pcode_new": 1,
+        "empty_pcode_same": 1,
+        "fresh": 5,
+        "pcode_dup": 1
+      }
+    },
+    {
+      "case": "pcode-truth.json",
+      "declared_shapes": [
+        "std_bracket",
+        "fullwidth_bracket",
+        "std_bracket_spaced_serial",
+        "decree_no_bracket",
+        "empty"
+      ],
+      "hand_annotated_cases": [
+        "国办发〔2026〕28号",
+        "国知发服字〔2026〕29号",
+        "工信部联规函〔2026〕305号",
+        "国令第847号",
+        "",
+        "工信部联规﹝2026﹞210号",
+        "农农发〔2026〕9 号",
+        "国令第846号",
+        "发改价格〔2026〕1476号",
+        "建办城函〔2026〕239号",
+        "交水发〔2026〕127号"
+      ],
+      "reverse_samples": [
+        "国令第847号（不得解析出年份）",
+        "空 pcode（不得解析出代字）"
+      ],
+      "rule_package": "K6 文号三态解析（代字/年份/序号，代字不做白名单硬编码）",
+      "sampled_shapes": [
+        "decree_no_bracket",
+        "empty",
+        "fullwidth_bracket",
+        "std_bracket",
+        "std_bracket_spaced_serial"
+      ],
+      "sampled_total": 68,
+      "sampling_note": "人工标注 11 条 + 观测池语料 57 条真实文号；**抽样覆盖、非穷举**",
+      "shape_sample_counts": {
+        "decree_no_bracket": 9,
+        "empty": 1,
+        "fullwidth_bracket": 2,
+        "std_bracket": 54,
+        "std_bracket_spaced_serial": 2
+      }
+    },
+    {
+      "case": "subscribe-truth.json",
+      "configured_exclude": 2,
+      "configured_include": 7,
+      "declared_shapes": [
+        "multi_keyword",
+        "zero_hit",
+        "exclude_only",
+        "exclude_and_include",
+        "duplicate_keyword_dedup",
+        "normalized_fullwidth"
+      ],
+      "rule_package": "K8 订阅匹配（子串包含 + 全半角归一 + exclude 整条剔除）",
+      "sampled_shapes": [
+        "duplicate_keyword_dedup",
+        "exclude_and_include",
+        "exclude_only",
+        "multi_keyword",
+        "normalized_fullwidth",
+        "zero_hit"
+      ],
+      "sampled_total": 21,
+      "sampling_note": "语料 = 预置快照对 B 侧 21 条；**抽样覆盖、非穷举**",
+      "shape_sample_counts": {
+        "duplicate_keyword_dedup": 1,
+        "exclude_and_include": 1,
+        "exclude_only": 2,
+        "multi_keyword": 10,
+        "normalized_fullwidth": 10,
+        "zero_hit": 5
+      }
+    }
+  ],
+  "coverage_disclaimer": "以上均为**抽样覆盖**（观测池 60 条 / 语料 21 条 / 文号 57 条），**非穷举**；未覆盖形态在后续里程碑增量补录。",
+  "note": "真值台账总清单（M1）：覆盖声明（总数/采样数/采样清单三登记）+ 验收门槛（随数据下发，代码零默认值）。",
+  "snapshot_counts": {
+    "a_items": 20,
+    "b_items": 21,
+    "expected_dup": 15,
+    "expected_new": 6
+  },
+  "snapshot_manifest": "snapshots/manifest.json",
+  "thresholds": {
+    "diff_dup_accuracy": 1.0,
+    "diff_new_accuracy": 1.0,
+    "note": "首期基准门槛：确定性规则 + 真值逐条对账 → 判定类准确率必须 100%。**基准层只读本清单；缺失即报配置错误 exit 2；不得回落代码默认值。**",
+    "pcode_field_accuracy": 1.0,
+    "pcode_status_accuracy": 1.0,
+    "subscribe_exclude_recall": 1.0,
+    "subscribe_hit_precision": 1.0,
+    "subscribe_hit_recall": 1.0
+  },
+  "thresholds_policy": "基准层只读；缺失即报配置错误（exit 2）；**不得回落代码默认值**。",
+  "truth_files": {
+    "diff-truth.json": "truth/diff-truth.json",
+    "pcode-truth.json": "truth/pcode-truth.json",
+    "subscribe-truth.json": "truth/subscribe-truth.json"
+  }
+}

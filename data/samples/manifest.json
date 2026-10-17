@@ -1,0 +1,58 @@
+{
+  "note": "真实 API 响应样本登记（M1）。样本为原始响应字节，逐份 sha256 供克隆后比对。",
+  "samples": [
+    {
+      "bytes": 22698,
+      "captured_date": "2026-10-17",
+      "channel_param": "zhengcelibrary_gwy",
+      "entries_in_sample": 5,
+      "file": "gwy-p1-n5.json",
+      "http_status": 200,
+      "n": 5,
+      "page": 1,
+      "sha256": "cd583632f59719e6bd154c9ee183313e6d0622ede2185ca4e26ebef7cb9d8802",
+      "totalCount": 6222,
+      "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_gwy&q=&p=1&n=5&sort=pubtime&sortType=1"
+    },
+    {
+      "bytes": 25276,
+      "captured_date": "2026-10-17",
+      "channel_param": "zhengcelibrary_bm",
+      "entries_in_sample": 5,
+      "file": "bm-p1-n5.json",
+      "http_status": 200,
+      "n": 5,
+      "page": 1,
+      "sha256": "21b1ed4e94c6d0ebe7b8a0fa3b8af38f842fb9c718e225f770b2d52a36b7909a",
+      "totalCount": 12803,
+      "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_bm&q=&p=1&n=5&sort=pubtime&sortType=1"
+    },
+    {
+      "bytes": 69097,
+      "captured_date": "2026-10-17",
+      "channel_param": "zhengcelibrary_gwy",
+      "entries_in_sample": 30,
+      "file": "gwy-p1-n30.json",
+      "http_status": 200,
+      "n": 30,
+      "page": 1,
+      "sha256": "e403d43bb5300dd891c17fb37ae9d9fad3b846cdfee4c56be6622b239d1f0009",
+      "totalCount": 6222,
+      "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_gwy&q=&p=1&n=30&sort=pubtime&sortType=1"
+    },
+    {
+      "bytes": 74581,
+      "captured_date": "2026-10-17",
+      "channel_param": "zhengcelibrary_bm",
+      "entries_in_sample": 30,
+      "file": "bm-p1-n30.json",
+      "http_status": 200,
+      "n": 30,
+      "page": 1,
+      "sha256": "41e9a8420b1b27a7b88582f89401dec91780634f04ede1e05edbf1eea2d1191e",
+      "totalCount": 12803,
+      "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_bm&q=&p=1&n=30&sort=pubtime&sortType=1"
+    }
+  ],
+  "source": "https://sousuo.www.gov.cn/search-gov/data"
+}

@@ -1,0 +1,791 @@
+{
+  "also_expect": {
+    "fullwidth_bracket_parses_year": true,
+    "hand_annotated_not_in_pool": [
+      ""
+    ],
+    "reverse_empty_pcode_unparsed": true,
+    "reverse_no_fabricated_year": true
+  },
+  "case": "pcode-parse",
+  "case_kind": "pcode-structure",
+  "cases": [
+    {
+      "expect": {
+        "agency_code": "国办发",
+        "serial": "28",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "hand_annotated",
+      "pcode": "国办发〔2026〕28号"
+    },
+    {
+      "expect": {
+        "agency_code": "国知发服字",
+        "serial": "29",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "hand_annotated",
+      "pcode": "国知发服字〔2026〕29号"
+    },
+    {
+      "expect": {
+        "agency_code": "工信部联规函",
+        "serial": "305",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "hand_annotated",
+      "pcode": "工信部联规函〔2026〕305号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "847",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "hand_annotated",
+      "pcode": "国令第847号"
+    },
+    {
+      "expect": {
+        "agency_code": "未解析",
+        "serial": "未解析",
+        "status": "unparsed",
+        "year": "未解析"
+      },
+      "form": "empty",
+      "origin": "hand_annotated",
+      "pcode": ""
+    },
+    {
+      "expect": {
+        "agency_code": "工信部联规",
+        "serial": "210",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "fullwidth_bracket",
+      "origin": "hand_annotated",
+      "pcode": "工信部联规﹝2026﹞210号"
+    },
+    {
+      "expect": {
+        "agency_code": "农农发",
+        "serial": "9",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket_spaced_serial",
+      "origin": "hand_annotated",
+      "pcode": "农农发〔2026〕9 号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "846",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "hand_annotated",
+      "pcode": "国令第846号"
+    },
+    {
+      "expect": {
+        "agency_code": "发改价格",
+        "serial": "1476",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "hand_annotated",
+      "pcode": "发改价格〔2026〕1476号"
+    },
+    {
+      "expect": {
+        "agency_code": "建办城函",
+        "serial": "239",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "hand_annotated",
+      "pcode": "建办城函〔2026〕239号"
+    },
+    {
+      "expect": {
+        "agency_code": "交水发",
+        "serial": "127",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "hand_annotated",
+      "pcode": "交水发〔2026〕127号"
+    }
+  ],
+  "coverage": {
+    "form_counts": {
+      "decree_no_bracket": 9,
+      "empty": 1,
+      "fullwidth_bracket": 2,
+      "std_bracket": 54,
+      "std_bracket_spaced_serial": 2
+    },
+    "hand_annotated_cases": 11,
+    "pool_corpus_cases": 57,
+    "sampling_note": "观测池两频道各 30 条（共 57 条非空 pcode）；**抽样覆盖、非穷举**"
+  },
+  "expect_semantics": {
+    "parsed": "agency_code / year / serial 三字段全部解析成功",
+    "partial": "部分字段解析成功，未成功者为哨兵 '未解析'",
+    "unparsed": "整条无法解析，三字段全为哨兵 '未解析'"
+  },
+  "input": {
+    "source": "data/samples/*-n30.json 的 pcode 字段 + 人工标注用例"
+  },
+  "note": "期望只存输入与期望；观测由基准运行时实算（K11）。",
+  "pool_corpus_cases": [
+    {
+      "expect": {
+        "agency_code": "交水发",
+        "serial": "127",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "交水发〔2026〕127号"
+    },
+    {
+      "expect": {
+        "agency_code": "农农发",
+        "serial": "9",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket_spaced_serial",
+      "origin": "pool_corpus",
+      "pcode": "农农发〔2026〕9 号"
+    },
+    {
+      "expect": {
+        "agency_code": "农机发",
+        "serial": "5",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "农机发〔2026〕5号"
+    },
+    {
+      "expect": {
+        "agency_code": "农渔发",
+        "serial": "17",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "农渔发〔2026〕17号"
+    },
+    {
+      "expect": {
+        "agency_code": "农牧发",
+        "serial": "9",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "农牧发〔2026〕9号"
+    },
+    {
+      "expect": {
+        "agency_code": "发改价格",
+        "serial": "1476",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "发改价格〔2026〕1476号"
+    },
+    {
+      "expect": {
+        "agency_code": "商消费发",
+        "serial": "148",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "商消费发〔2026〕148号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "841",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国令第841号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "842",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国令第842号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "843",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国令第843号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "844",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国令第844号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "845",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国令第845号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "846",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国令第846号"
+    },
+    {
+      "expect": {
+        "agency_code": "国令",
+        "serial": "847",
+        "status": "partial",
+        "year": "未解析"
+      },
+      "form": "decree_no_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国令第847号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "105",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕105号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "59",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕59号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "60",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕60号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "61",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕61号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "66",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕66号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "69",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕69号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "71",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕71号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "80",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕80号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "89",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕89号"
+    },
+    {
+      "expect": {
+        "agency_code": "国函",
+        "serial": "99",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国函〔2026〕99号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办函",
+        "serial": "65",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办函〔2026〕65号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办函",
+        "serial": "71",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办函〔2026〕71号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办函",
+        "serial": "82",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办函〔2026〕82号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办函",
+        "serial": "84",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办函〔2026〕84号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办发",
+        "serial": "22",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办发〔2026〕22号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办发",
+        "serial": "24",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办发〔2026〕24号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办发",
+        "serial": "26",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办发〔2026〕26号"
+    },
+    {
+      "expect": {
+        "agency_code": "国办发",
+        "serial": "28",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国办发〔2026〕28号"
+    },
+    {
+      "expect": {
+        "agency_code": "国卫办医政函",
+        "serial": "305",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国卫办医政函〔2026〕305号"
+    },
+    {
+      "expect": {
+        "agency_code": "国卫规划发",
+        "serial": "24",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国卫规划发〔2026〕24号"
+    },
+    {
+      "expect": {
+        "agency_code": "国发",
+        "serial": "20",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国发〔2026〕20号"
+    },
+    {
+      "expect": {
+        "agency_code": "国发",
+        "serial": "22",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国发〔2026〕22号"
+    },
+    {
+      "expect": {
+        "agency_code": "国发",
+        "serial": "23",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国发〔2026〕23号"
+    },
+    {
+      "expect": {
+        "agency_code": "国发",
+        "serial": "26",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国发〔2026〕26号"
+    },
+    {
+      "expect": {
+        "agency_code": "国发",
+        "serial": "30",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国发〔2026〕30号"
+    },
+    {
+      "expect": {
+        "agency_code": "国新出发",
+        "serial": "8",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国新出发〔2026〕8号"
+    },
+    {
+      "expect": {
+        "agency_code": "国版发",
+        "serial": "3",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国版发〔2026〕3号"
+    },
+    {
+      "expect": {
+        "agency_code": "国知发服字",
+        "serial": "29",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "国知发服字〔2026〕29号"
+    },
+    {
+      "expect": {
+        "agency_code": "工信部信发",
+        "serial": "209",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "工信部信发〔2026〕209号"
+    },
+    {
+      "expect": {
+        "agency_code": "工信部联规",
+        "serial": "211",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "工信部联规〔2026〕211号"
+    },
+    {
+      "expect": {
+        "agency_code": "工信部联规",
+        "serial": "216",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "工信部联规〔2026〕216号"
+    },
+    {
+      "expect": {
+        "agency_code": "工信部联规函",
+        "serial": "305",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "工信部联规函〔2026〕305号"
+    },
+    {
+      "expect": {
+        "agency_code": "工信部联规",
+        "serial": "210",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "fullwidth_bracket",
+      "origin": "pool_corpus",
+      "pcode": "工信部联规﹝2026﹞210号"
+    },
+    {
+      "expect": {
+        "agency_code": "工信部规",
+        "serial": "188",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "工信部规〔2026〕188号"
+    },
+    {
+      "expect": {
+        "agency_code": "建办城函",
+        "serial": "239",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "建办城函〔2026〕239号"
+    },
+    {
+      "expect": {
+        "agency_code": "文旅产业发",
+        "serial": "61",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "文旅产业发〔2026〕61号"
+    },
+    {
+      "expect": {
+        "agency_code": "文旅公共发",
+        "serial": "63",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "文旅公共发〔2026〕63号"
+    },
+    {
+      "expect": {
+        "agency_code": "文旅政法发",
+        "serial": "60",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "文旅政法发〔2026〕60号"
+    },
+    {
+      "expect": {
+        "agency_code": "文旅艺发",
+        "serial": "66",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "文旅艺发〔2026〕66号"
+    },
+    {
+      "expect": {
+        "agency_code": "文旅非遗发",
+        "serial": "64",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "文旅非遗发〔2026〕64号"
+    },
+    {
+      "expect": {
+        "agency_code": "财库",
+        "serial": "12",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "财库〔2026〕12号"
+    },
+    {
+      "expect": {
+        "agency_code": "财金",
+        "serial": "88",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "财金〔2026〕88号"
+    },
+    {
+      "expect": {
+        "agency_code": "金发",
+        "serial": "17",
+        "status": "parsed",
+        "year": "2026"
+      },
+      "form": "std_bracket",
+      "origin": "pool_corpus",
+      "pcode": "金发〔2026〕17号"
+    }
+  ],
+  "status_values": [
+    "parsed",
+    "partial",
+    "unparsed"
+  ],
+  "unparsed_sentinel": "未解析"
+}
