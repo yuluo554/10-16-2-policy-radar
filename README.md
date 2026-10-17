@@ -6,7 +6,7 @@
 
 - 形态：**纯本地 Python CLI**（无服务器、无 GPU、无账号、无遥测）
 - 数据源：中国政府网搜索 API 两个公开频道（国务院政策库 + 部委政策库）
-- 版本：`0.1.0`（M3 diff 与解析；里程碑进度见 `plan/06-里程碑.md`）
+- 版本：`0.1.0`（M4 基准；里程碑进度见 `plan/06-里程碑.md`）
 - 方法论与全套计划文档：`plan/00-README总览.md`
 
 ---
@@ -33,6 +33,10 @@ policy-radar parse --input out/diff.json --data-root data
 
 # 数据自审：真值台账一致性核对（实算观测 vs 期望）
 policy-radar verify-data --data-root data
+
+# 真值基准：三套件（diff/pcode/subscribe）生产实现实算 + 门槛判定
+policy-radar bench --data-root data          # 0 达标 / 1 未达标 / 2 用法错误
+policy-radar bench --only subscribe --data-root data
 
 # 自检必须"可证伪"：把数据根指向空目录会返回非 0
 policy-radar selftest --data-root ./empty-dir
@@ -62,9 +66,9 @@ policy-radar selftest --data-root ./empty-dir
 | `policy-radar fetch` | M2 | 双源抓取：统一 schema 条目文件 + totalCount 对账，exit 0/1/2/4 |
 | `policy-radar diff` | M3 | 快照 diff：id/pcode 双键判定 + 规范序更新快照，exit 0/2 |
 | `policy-radar parse` | M3 | 文号三态解析 + 部门归一（别名表单一来源），exit 0/2 |
+| `policy-radar bench` | M4 | 真值基准：三套件生产实现实算 + 门槛判定（随数据下发），exit 0/1/2 |
 | `policy-radar digest` | M5 | **exit 3** |
 | `policy-radar run` | M5 | **exit 3** |
-| `policy-radar bench` | M4 | **exit 3** |
 
 两条等价通路（`sys.path` 来源不同，**两者都要能跑**）：
 
@@ -83,7 +87,7 @@ policy-radar diff --current out/fetched.json
 policy-radar parse --input out/new-items.json --data-root data
 policy-radar digest --new-items out/new-items.json --format both
 policy-radar run --channels gwy,bm --out-dir out
-policy-radar bench --only diff
+policy-radar bench --only diff --data-root data
 policy-radar verify-data --data-root data
 ```
 
@@ -159,7 +163,8 @@ python -m pytest -q
 | `plan/07-交付对标.md` | 评分维度逐条对标 |
 | `plan/HANDOFF-M2.md` | 跨会话交接（本棒入口） |
 | `plan/HANDOFF-M3.md` | 跨会话交接（M2 收尾产出，历史） |
-| `plan/HANDOFF-M4.md` | 跨会话交接（下一棒零上下文续接） |
+| `plan/HANDOFF-M4.md` | 跨会话交接（M3 收尾产出，本棒入口） |
+| `plan/HANDOFF-M5.md` | 跨会话交接（下一棒零上下文续接） |
 | `data/README.md` | 数据源三态记录 + M0/M1/M2 实测勘误 |
 | `data/config/README.md` | 规则数据（别名表/订阅/归一表）语义 |
 | `data/snapshots/README.md` | 预置快照对（字节冻结 fixtures）+ 五形态覆盖 |
@@ -180,7 +185,7 @@ policy-radar verify-data --data-root data
 `new_ids 多出：['26782365']`）、exit 1；真值库注入 `observed_*` 字段 → 报 K11 违规、exit 1。
 
 **它不是基准**：本命令只核"真值库自身是否自洽"（期望可否由输入独立复算）；
-跑生产实现的达标判定是 M4 `bench` 的事。
+跑生产实现的达标判定是 `bench`（M4 已落地，见第十节）。
 
 四个生成器各有**两层位级守门**（`--check`）：
 
@@ -240,10 +245,33 @@ policy-radar parse --input out/diff.json --data-root data
 - **未挂原文不落库（K10 代码级门禁）**：快照/清单条目出现 `content`/`body`/`fulltext`
   一类字段即拒——读、写两条路径都拦。
 
-## 十、品牌定位
+## 十、真值基准（M4）
+
+```bash
+policy-radar bench --data-root data
+policy-radar bench --only diff --data-root data
+```
+
+- **一键跑通三个套件**：diff（`snapshot.detect_new`）/ pcode（`parse.parse_pcode`）/
+  subscribe（`subscribe.match_items`）——**生产实现实算**，用**共用对账语义**
+  （`cases.compare_*`）与真值期望逐条比对（与 `verify-data` 共用同一份，
+  不会出现"基准说达标、测试说不过"）。
+- **与 `verify-data` 的分工**：`verify-data` 核"真值库自身是否自洽"（喂**参照实现**）；
+  `bench` 判"**生产实现**对真值逐条一致"——两边对账语义与门槛装载**同源复用**。
+- **门槛随数据下发（K17）**：读 `data/truth/manifest.json` 的 `thresholds`
+  （与 `verify-data` 同一 loader），缺失即 exit 2，**代码零默认值**。
+- **退出码三语义**：0 达标 / 1 未达标（逐条点名哪几条）/ 2 用法错误。
+- **双边门**：既守误报率 0（对账 ok——不该有的结论一条不能多，含命中键判错、
+  命中位置错），也守检出率 ≥ 阈值（该有的逐样本点名——生产实现整条空转时
+  对账可能漏红，检出门必红）。
+- **可证伪探活**：向生产实现注入缺陷（pcode 键判定打掉 / 命中短路成空 /
+  解析恒 unparsed）→ 基准必须报未达标（exit 1）并逐条点名；探活打到
+  **端到端入口**（CLI 层），见 `tests/test_subscribe_bench.py`。
+
+## 十一、品牌定位
 
 本仓库独立成题，**不与任何其他项目共享品牌、代码或数据**；文档与代码中不含任何其他项目名称。
 
-## 十一、许可
+## 十二、许可
 
 MIT。数据来源为中国政府网公开信息，本工具只存元数据与链接，不归档正文。

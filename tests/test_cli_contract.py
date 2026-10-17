@@ -67,13 +67,12 @@ def test_not_ready_commands_exit_3(command):
 def _min_args(command):
     """未就绪命令所需的最小参数（argparse required 参数必须给全，否则 exit 2 掩盖 exit 3）。
 
-    `fetch` 已在 M2 落地、`diff`/`parse` 已在 M3 落地 -> 均从本表移除
-    （K2 退役：凡断言某命令 exit 3 的地方，退役时逐处处置）。
+    `fetch` 已在 M2 落地、`diff`/`parse` 已在 M3 落地、`bench` 已在 M4 落地
+    -> 均从本表移除（K2 退役：凡断言某命令 exit 3 的地方，退役时逐处处置）。
     """
     required = {
         "digest": ["--new-items", "n.json"],
         "run": [],
-        "bench": [],
     }
     return required[command]
 
@@ -81,35 +80,38 @@ def _min_args(command):
 def test_not_ready_stderr_mentions_milestone():
     """未就绪命令的 stderr 必须写明计划里程碑。
 
-    M2 后 `fetch` 已落地（真抓取，0/1/2/4），**不能再断言它 exit 3** -> 改用仍在
-    未就绪状态的 `bench`（M4）。这条测试守的是"退出码 3 的提示语含里程碑"这一契约，
-    不是某一条具体命令。
+    M4 后 `bench` 已落地（真值基准，0/1/2），**不能再断言它 exit 3** -> 改用仍在
+    未就绪状态的 `digest`（M5）。这条测试守的是"退出码 3 的提示语含里程碑"
+    这一契约，不是某一条具体命令。
     """
-    proc = run_cli(["bench"])
+    proc = run_cli(["digest", "--new-items", "n.json"])
     err = proc.stderr.decode("utf-8")
-    assert "M4" in err
+    assert "M5" in err
 
 
-def test_fetch_and_diff_parse_are_retired_from_not_ready():
-    """`fetch`（M2）/ `diff`、`parse`（M3）必须已从 `NOT_READY_COMMANDS` 移除
-    （否则落地了还报"未就绪"）。子命令本身必须仍然注册（只是不再 exit 3）。"""
-    for command in ("fetch", "diff", "parse"):
+def test_fetch_diff_parse_bench_are_retired_from_not_ready():
+    """`fetch`（M2）/ `diff`、`parse`（M3）/ `bench`（M4）必须已从
+    `NOT_READY_COMMANDS` 移除（否则落地了还报"未就绪"）。子命令本身必须
+    仍然注册（只是不再 exit 3）。"""
+    for command in ("fetch", "diff", "parse", "bench"):
         assert command not in NOT_READY_COMMANDS
         assert command in _registered_commands(), \
             "%s 子命令必须仍然注册（只是不再 exit 3）" % command
 
 
 def test_other_commands_still_not_ready():
-    """反向断言：退役只退 `fetch`/`diff`/`parse`，其余命令的 exit 3 语义**不得**被顺手删掉。"""
-    assert set(NOT_READY_COMMANDS) == {"digest", "run", "bench"}
+    """反向断言：退役只退 `fetch`/`diff`/`parse`/`bench`，其余命令的 exit 3
+    语义**不得**被顺手删掉。"""
+    assert set(NOT_READY_COMMANDS) == {"digest", "run"}
     assert errors.EXIT_NOT_READY == 3
-    assert hasattr(errors, "NotReadyError"), "NOT_READY 通路（M4/M5 还要用）不得整体删除"
+    assert hasattr(errors, "NotReadyError"), "NOT_READY 通路（M5 还要用）不得整体删除"
 
 
 def test_retired_commands_do_real_work_offline(tmp_path):
-    """M3 退役的双命令**真干活**（离线）：diff 判定真值一致、parse 解析真值一致。
+    """M3/M4 退役的命令**真干活**（离线）：diff 判定真值一致、parse 解析真值一致、
+    bench 三套件达标退出 0。
 
-    这是"退役 ≠ 顺手删语义"的行为级证明：diff/parse 现在走 0/2 退出码通路。
+    这是"退役 ≠ 顺手删语义"的行为级证明：diff/parse 走 0/2、bench 走 0/1/2 退出码通路。
     """
     from policy_radar.serialize import read_json
 
@@ -135,6 +137,34 @@ def test_retired_commands_do_real_work_offline(tmp_path):
     parsed = read_json(out_parse)
     assert parsed["item_count"] == 21
     assert set(parsed["pcode_status_counts"]) == {"parsed", "partial", "unparsed"}
+
+    code_bench = main(["bench", "--data-root", data])
+    assert code_bench == errors.EXIT_OK
+
+
+# --- bench（M4）：退出码三语义 0 达标 / 1 未达标 / 2 用法错误 -----------------
+
+def test_bench_passes_exit_0_subprocess():
+    """全量三套件对真值实算：生产实现逐条一致 → exit 0（子进程端到端）。"""
+    data = os.path.join(ROOT, "data")
+    proc = run_cli(["bench", "--data-root", data])
+    out = proc.stdout.decode("utf-8")
+    assert proc.returncode == errors.EXIT_OK, out + proc.stderr.decode("utf-8")
+    assert "全部达标" in out
+
+
+def test_bench_only_accepts_known_suites():
+    """`--only` 不认识的名字 = 用法错误 exit 2（不静默跑全量）。"""
+    data = os.path.join(ROOT, "data")
+    proc = run_cli(["bench", "--only", "nope", "--data-root", data])
+    assert proc.returncode == errors.EXIT_USAGE
+    assert "only" in proc.stderr.decode("utf-8")
+
+
+def test_bench_usage_error_exit_2_without_data_root(tmp_path):
+    """数据根指向空目录 → 真值/门槛缺失 → exit 2（不是 1；"没数据"不是"未达标"）。"""
+    proc = run_cli(["bench", "--data-root", str(tmp_path)])
+    assert proc.returncode == errors.EXIT_USAGE
 
 
 def test_fetch_usage_error_exit_2_without_network():

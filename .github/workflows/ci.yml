@@ -48,14 +48,23 @@ jobs:
           python -m policy_radar version
           python -m policy_radar selftest --data-root data
 
-      - name: 未就绪子命令必须 exit 3（契约退出码接线：set +e + 显式断言）
+      - name: 未就绪子命令必须 exit 3（契约退出码接线：set +e + 显式断言；M4 后 bench 已落地，改用 digest）
         shell: bash
         run: |
           set +e
-          python -m policy_radar bench
+          python -m policy_radar digest --new-items n.json
+          code=$?
+          echo "digest exit=$code"
+          test "$code" = "3"
+
+      - name: 真值基准必须达标（M4 bench：三套件生产实现实算 + 门槛判定，联网无关）
+        shell: bash
+        run: |
+          set +e
+          python -m policy_radar bench --data-root data
           code=$?
           echo "bench exit=$code"
-          test "$code" = "3"
+          test "$code" = "0"
 
       - name: 已落地子命令的用法错误必须 exit 2（**参数非法时不发任何请求**，CI 不依赖外网）
         shell: bash

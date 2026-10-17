@@ -1,12 +1,13 @@
 """CLI 入口：argparse 子命令、退出码、编码守卫。
 
-- `selftest` / `version` / `verify-data` / `fetch` / `diff` / `parse`
+- `selftest` / `version` / `verify-data` / `fetch` / `diff` / `parse` / `bench`
   **已实现且可证伪**；
-- `digest` / `run` / `bench` 一律 **exit 3（能力未就绪）**，
+- `digest` / `run` 一律 **exit 3（能力未就绪）**，
   **不伪造空结果**——退出码 3 在对应模块落地后整项退役（四处同步，见 errors.py）。
 
 `fetch` 的 exit 3 已在 M2 整项退役（真抓取 0/1/2/4）；`diff` / `parse` 的
-exit 3 已在 M3 整项退役（0/2），再断言它们 exit 3 会红。
+exit 3 已在 M3 整项退役（0/2）；`bench` 的 exit 3 已在 M4 整项退役（0/1/2），
+再断言它们 exit 3 会红。
 """
 
 import argparse
@@ -27,7 +28,6 @@ PROG = "policy-radar"
 NOT_READY_COMMANDS = {
     "digest": "M5 中文日报生成",
     "run": "M5 端到端编排",
-    "bench": "M4 内置基准",
 }
 
 
@@ -109,8 +109,10 @@ def build_parser():
     p_run.add_argument("--channels", default="gwy,bm")
     p_run.add_argument("--out-dir", default="out")
 
-    p_bench = sub.add_parser("bench", help="[M4] 内置基准")
-    p_bench.add_argument("--only", default=None, help="只跑指定套件")
+    p_bench = sub.add_parser("bench", help="[M4] 真值基准：三套件一键跑通（生产实现实算 + 门槛判定）")
+    p_bench.add_argument("--only", default=None, help="只跑指定套件（diff/pcode/subscribe）")
+    p_bench.add_argument("--data-root", default=None,
+                         help="数据根目录（真值与门槛在 data/truth/ 下；默认自动发现）")
 
     return parser
 
@@ -216,6 +218,9 @@ def main(argv=None):
     if args.command == "parse":
         from .parse import cmd_parse
         return cmd_parse(args)
+    if args.command == "bench":
+        from .bench import cmd_bench
+        return cmd_bench(args)
     if args.command in NOT_READY_COMMANDS:
         return _not_ready(args.command)
 
