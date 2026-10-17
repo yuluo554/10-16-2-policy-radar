@@ -218,7 +218,7 @@ grep -rn "exit 3\|EXIT_NOT_READY\|尚未就绪" --include=*.py --include=*.md --
 
 ## 七、续接指针
 
-- **本棒产出**：`src/policy_radar/fetch.py`（真实现，约 460 行）、`tests/test_fetch.py`（38 项）、
+- **本棒产出**：`src/policy_radar/fetch.py`（真实现，533 行）、`tests/test_fetch.py`（38 项，685 行）、
   `tests/test_samples_regression.py`（第六节新增 17 项，共 46）、CLI/README/CI/`plan/00,03,04,05,06,07`/`data/README.md` 同步。
 - **下一棒入口**：`plan/06-里程碑.md` 的 M3 节 + `plan/04-模块详设.md` 模块 2/模块 3 + 本文件第二节。
 - **下一棒出口**：`plan/HANDOFF-M4.md`（先落盘再结束对话）。
