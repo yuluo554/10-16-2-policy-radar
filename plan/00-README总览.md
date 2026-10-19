@@ -142,14 +142,14 @@ CI 实测 2 push = 2 run 全 success（四矩阵 ubuntu/windows × 3.8/3.12，�
 
 ### 测试数口径（**本仓唯一权威数字**）
 
-**当前全量测试 = 336 项**（`pytest -o addopts="" -q` → `336 passed` / `336 collected`，
+**当前全量测试 = 339 项**（`pytest -o addopts="" -q` → `339 passed` / `339 collected`，
 py3.12；3.8 通道已在 M7 退役）。README 的同名数字由 `tests/test_readme_gate.py` 真跑
 `--collect-only` 对账，`plan/` 里的数字由 `tests/test_plan_count_gate.py` 对账。
 
 **文中其它数字都是历史里程碑当时的快照，不要再改**：M1 171 / M2 230 / M3 230 /
 M4 287 / M5–M6 307→321（含 `plan/06` 各棒 DoD、`plan/HANDOFF-M*`、`plan/RELEASE-M6.md`、
 `plan/WRAPUP-M6.md`）。**判读规则**：带"当时 / 本对话实测 / M<n>"限定语的一律按历史读；
-只有上面这一行和 README 的「336 项绿」是当前值。
+只有上面这一行和 README 的「339 项绿」是当前值。
 
 **诚实口径尾注（M0）**：全程**无远端**、**一次 CI 都没跑过** → 凡 CI 类 DoD 项一律写"本地等价校验（未接远端，CI 待首推验证）"，**不写"CI 绿"**。M6 首推后据实补记真实 run id（补记是追加事实，不改写历史措辞）。
 **M6 补记（追加事实）**：首推已完成——run 38999630365（main）与 39001429887（v0.1.0）均 success，四矩阵（ubuntu/windows × 3.8/3.12）全绿；ubuntu/py3.8 与 shell 差异两项"不可本机实跑缺口"实测通过。详见 `plan/RELEASE-M6.md`。

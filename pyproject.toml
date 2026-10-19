@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "policy-radar"
-version = "0.1.0"
+version = "0.2.0"
 description = "政策文件雷达：本地定时抓取国务院与部委政策库，快照 diff 检测新发文件，产出可订阅关键词的中文日报"
 readme = "README.md"
 requires-python = ">=3.12"

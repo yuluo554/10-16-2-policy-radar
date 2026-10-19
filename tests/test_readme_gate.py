@@ -427,3 +427,45 @@ def test_readme_test_count_matches_collected(readme):
         "README 声明的测试数 %r 与实测收集数 %d 不一致（新增/删除测试必须同步改 README）"
         % (declared, actual))
 
+
+
+# --- 9. 版本号三处一致（pyproject / __init__ / README）+ CHANGELOG 覆盖 -------
+
+def test_version_consistent_across_pyproject_and_package(pyproject):
+    """**版本号单一来源守门**：`pyproject.toml` 与 `__init__.py` 必须是同一个值。
+
+    发版时最容易漏的一处：改了 pyproject 忘了 `__init__.__version__`（或反之），
+    结果是 `policy-radar version` 与包元数据各说一套。
+    """
+    from policy_radar import __version__ as pkg_version
+
+    m = re.search(r'^version\s*=\s*"([^"]+)"', pyproject, re.M)
+    assert m, "pyproject 缺 [project] version"
+    assert m.group(1) == pkg_version, (
+        "pyproject version=%r 与 __init__.__version__=%r 不一致" % (m.group(1), pkg_version))
+
+
+def test_readme_declares_current_version(readme, pyproject):
+    """README 首部的「版本：」必须与 pyproject 一致（用户第一眼看到的版本号）。"""
+    from policy_radar import __version__ as pkg_version
+
+    m = re.search(r"^- 版本：`([0-9][^`]*)`", readme, re.M)
+    assert m, "README 首部缺「- 版本：`x.y.z`」行"
+    assert m.group(1) == pkg_version, (
+        "README 声明版本 %r 与包版本 %r 不一致" % (m.group(1), pkg_version))
+
+
+def test_changelog_exists_and_covers_current_version():
+    """CHANGELOG 必须存在，且**为当前版本写了一节**（发版时不许"只改版本号不写改动"）。
+
+    判据落在"该版本号出现在 CHANGELOG 的标题行"上，而不是"文件里出现过这个字符串"
+    ——后者会被 CHANGELOG 里任何一处旧版本比较文本满足，等于空转。
+    """
+    from policy_radar import __version__ as pkg_version
+
+    path = os.path.join(ROOT, "CHANGELOG.md")
+    assert os.path.isfile(path), "缺 CHANGELOG.md"
+    text = _read(path)
+    headings = [ln for ln in text.splitlines() if ln.startswith("#")]
+    assert any(pkg_version in ln for ln in headings), (
+        "CHANGELOG 没有为当前版本 %s 写标题节；现有标题：%r" % (pkg_version, headings[:10]))

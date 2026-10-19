@@ -6,7 +6,8 @@
 
 - 形态：**纯本地 Python CLI**（无服务器、无 GPU、无账号、无遥测）
 - 数据源：中国政府网搜索 API 两个公开频道（国务院政策库 + 部委政策库）
-- 版本：`0.1.0`（M4 基准；里程碑进度见 `plan/06-里程碑.md`）
+- 版本：`0.2.0`（M7 发布；**Python 底线 3.12**，`v0.1.0` 的 3.8 底线已退役，
+  见 `CHANGELOG.md` 与 `plan/00-README总览.md` 决策 D30。里程碑进度见 `plan/06-里程碑.md`）
 - 方法论与全套计划文档：`plan/00-README总览.md`
 
 ---
@@ -133,8 +134,8 @@ policy-radar verify-data --data-root data
   3.8 自带 pip 20.2.3 不支持 PEP 660，`pip install -e .` 会报
   `editable mode currently requires a setup.py based build`。
   **处置** = 安装前先 `python -m pip install --upgrade pip`（快速开始已含此行）；
-  实测升级到 pip 25.0.1 后安装一次成功，全量测试 **336 项绿**（新 clone + 全新 venv 实测；
-  py3.12.10 单解释器 336 collected / 336 passed——地板抬到 3.12 后 3.8 通道已退役。
+  实测升级到 pip 25.0.1 后安装一次成功，全量测试 **339 项绿**（新 clone + 全新 venv 实测；
+  py3.12.10 单解释器 339 collected / 339 passed——地板抬到 3.12 后 3.8 通道已退役。
   **本数字由 `tests/test_readme_gate.py` 对账**：新增/删除测试必须同步改这里，否则守门红）。
 - **构建下限 setuptools>=77**（PEP 639 SPDX license 的要求）。setuptools 76 起要求 Python>=3.9，
   py3.8 能装到的最后一版 75.x 会**直接报配置错误**（`project.license` must be valid exactly by

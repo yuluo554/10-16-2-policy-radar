@@ -10,7 +10,7 @@
 - 未挂原文核对（与 API 返回字段一致）不得落库、不得在日报中生效。
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # 与 pyproject.toml 的 [project] version 必须一致（tests/test_cli_contract.py 守门）。
 __all__ = ["__version__"]
