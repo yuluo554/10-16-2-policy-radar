@@ -134,11 +134,14 @@ M2 真跑 `fetch`（两频道 × 2 页 × 20 条 = 80 条）后，实采到**一
 ## 里程碑状态
 
 见 `plan/06-里程碑.md` 的状态总表。M0（计划 + 骨架）、M1（数据先行）、M2（双源抓取）、
-M3（diff 与解析）、M4（基准）、M5（交付：日报 + run 编排）、M6（发布）**全部完成，项目收官**；
-M7（发布后卫生：floor 3.12 + CI 两格 + 数据在包外契约）已完成。
-公开仓库 https://github.com/yuluo554/10-16-2-policy-radar ，tag/Release `v0.1.0`；
-CI 实测 2 push = 2 run 全 success（四矩阵 ubuntu/windows × 3.8/3.12，首跑 run 38999630365）。
-逐项发布证据见 `plan/RELEASE-M6.md`，收尾见 `plan/WRAPUP-M6.md`。
+M3（diff 与解析）、M4（基准）、M5（交付：日报 + run 编排）、M6（发布）**全部完成**；
+M7（发布后卫生：floor 3.12 + CI 两格 + 数据在包外契约 + 计数对账）**已发布为 `0.2.0`**。
+公开仓库 https://github.com/yuluo554/10-16-2-policy-radar 。
+发布两版：**`v0.1.0`**（M6 首发，→ `9b82986`，**保留不动**，3.8 用户可继续用）与
+**`v0.2.0`**（M7 当前，Latest）。
+CI 证据：M6 首跑 run 38999630365；M7 的 run 39303003468 / 39304276774 / 39306325082 均 success
+（均为两格 ubuntu/windows × 3.12）。
+逐项发布证据见 `plan/RELEASE-M6.md` 与 `plan/RELEASE-M7.md`，收尾见 `plan/WRAPUP-M6.md` / `plan/WRAPUP-M7.md`。
 
 ### 测试数口径（**本仓唯一权威数字**）
 
