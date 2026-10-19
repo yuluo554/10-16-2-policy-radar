@@ -44,7 +44,8 @@ policy-radar selftest --data-root ./empty-dir
 
 > **为什么先升级 pip**：Python 3.8 自带的 pip 20.2.3 **不支持 PEP 660 可编辑安装**，
 > 直接 `pip install -e .` 会报 `editable mode currently requires a setup.py based build`
-> （实测，见第四节「已知环境问题」）。这一行不可省略。
+> （实测，见第四节「已知环境问题」）。**本项目当前底线是 Python 3.12**，该坑已不再触发；
+> 这一行保留是因为它对更老的解释器/更旧的 pip 仍是必要前置，且成本为零。
 
 **退出码语义**（判据以本节为准，非 0 不等于"跑挂了"）：
 
@@ -128,17 +129,26 @@ policy-radar verify-data --data-root data
 
 ## 四、已知环境问题
 
-- **Python 3.8 全新 venv 的 pip 太老，装不上 editable**：3.8 自带 pip 20.2.3 不支持 PEP 660，
-  `pip install -e .` 会报 `editable mode currently requires a setup.py based build`。
+- **Python 3.8 全新 venv 的 pip 太老，装不上 editable**（历史记录，当前底线已抬到 3.12）：
+  3.8 自带 pip 20.2.3 不支持 PEP 660，`pip install -e .` 会报
+  `editable mode currently requires a setup.py based build`。
   **处置** = 安装前先 `python -m pip install --upgrade pip`（快速开始已含此行）；
-  实测升级到 pip 25.0.1 后安装一次成功，全量测试 99 项绿（新 clone + 全新 venv 实测）。
+  实测升级到 pip 25.0.1 后安装一次成功，全量测试 **330 项绿**（新 clone + 全新 venv 实测；
+  py3.12.10 单解释器 330 collected / 330 passed——地板抬到 3.12 后 3.8 通道已退役。
+  **本数字由 `tests/test_readme_gate.py` 对账**：新增/删除测试必须同步改这里，否则守门红）。
+- **构建下限 setuptools>=77**（PEP 639 SPDX license 的要求）。setuptools 76 起要求 Python>=3.9，
+  py3.8 能装到的最后一版 75.x 会**直接报配置错误**（`project.license` must be valid exactly by
+  one definition，实测非警告而是硬失败）→ 故 `requires-python` 一并抬到 **>=3.12**。
 - **首期发布物是源码包 + editable 安装**（`pip install -e .`）。数据文件以**包外相对路径**定位，
-  `wheel`/`sdist` 安装后可能解析不到数据根 → 此时显式传 `--data-root`。
-  **本项为实测现象与规避方式，不构成"已验证 wheel 安装"的声明。**
+  非 editable 安装（wheel/sdist）**只提供 CLI 与解析能力**，数据相关命令需显式传 `--data-root`；
+  不传时 `selftest` 会 exit 1 并点出 `data_root_complete missing=[...]`，
+  `bench`/`verify-data` 会 exit 2「找不到数据根」。**这是显式契约，不是缺陷**——
+  `tests/test_readme_gate.py` 与 `tests/test_selftest.py` 钉住这个退出码，
+  防它"悄悄变成 0"而没人发现。
 - Windows 控制台编码：入口内置编码守卫（按 `stream.encoding` 探针决定是否 reconfigure）；
   非 ASCII 输出在 cp1252 管道下不会崩。CI 侧另有 `PYTHONUTF8=1` 兜底。
-- 本机 Python 通道：`py -0p` 实测有 3.8.8-64 与 3.12.10-64 两条；项目底线 3.8，
-  **全部代码只用 3.8 语法**。
+- 本机 Python 通道：`py -0p` 实测有 3.8.8-64 与 3.12.10-64 两条；**项目底线 3.12**，
+  CI 矩阵同口径（ubuntu/windows × 3.12）。
 
 ## 五、开发
 
@@ -191,10 +201,10 @@ policy-radar verify-data --data-root data
 四个生成器各有**两层位级守门**（`--check`）：
 
 ```bash
-py -3.8 -X utf8 tools/gen_snapshot_pairs.py --check
-py -3.8 -X utf8 tools/gen_pcode_cases.py --check
-py -3.8 -X utf8 tools/gen_subscribe_cases.py --check
-py -3.8 -X utf8 tools/gen_truth_manifest.py --check
+py -3.12 -X utf8 tools/gen_snapshot_pairs.py --check
+py -3.12 -X utf8 tools/gen_pcode_cases.py --check
+py -3.12 -X utf8 tools/gen_subscribe_cases.py --check
+py -3.12 -X utf8 tools/gen_truth_manifest.py --check
 ```
 
 ## 八、双源抓取（M2）

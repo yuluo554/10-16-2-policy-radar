@@ -1,5 +1,9 @@
 [build-system]
-requires = ["setuptools>=61"]
+# PEP 639（SPDX license 字符串 + license-files）需要 setuptools>=77。
+# setuptools 76.0.0 起已要求 Python>=3.9，py3.8 能装到的最后一版 75.x 会**直接报配置错误**
+# （`project.license` must be valid exactly by one definition）——故构建下限与运行时下限
+# 一起抬到 3.12（3.8/3.9/3.10 均已 EOL）。
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,8 +11,9 @@ name = "policy-radar"
 version = "0.1.0"
 description = "政策文件雷达：本地定时抓取国务院与部委政策库，快照 diff 检测新发文件，产出可订阅关键词的中文日报"
 readme = "README.md"
-requires-python = ">=3.8"
-license = { text = "MIT" }
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "yuluo554" }]
 keywords = ["policy", "gov.cn", "snapshot-diff", "cli", "chinese"]
 # 运行时零第三方依赖：抓取用 urllib、解析用 re、CLI 用 argparse、写盘用 io。

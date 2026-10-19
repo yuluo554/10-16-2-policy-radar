@@ -193,26 +193,85 @@ def test_readme_install_line_is_the_dev_extra(readme):
 
 
 def test_readme_upgrades_pip_before_editable_install(readme):
-    """**实测抓出的真缺陷**：Python 3.8 全新 venv 自带 pip 20.2.3，不支持 PEP 660
+    """**实测抓出的真缺陷**（历史）：Python 3.8 全新 venv 自带 pip 20.2.3，不支持 PEP 660
     可编辑安装 → 直接 `pip install -e .` 报 `editable mode currently requires a
     setup.py based build`（新 clone + 全新 venv 实测）。
 
+    当前底线已抬到 3.12（该坑不再触发），但这条守门仍然成立且必要：
+    更老的解释器/被 pin 住的旧 pip 上同一行是硬前置，而它成本为零。
     守门 = 安装命令块里必须有 `pip install --upgrade pip`，且**出现在 editable 安装之前**
     （顺序反了同样装不上）。
     """
     upgrade = re.search(r"python -m pip install (?:-q )?--upgrade pip", readme)
     editable = re.search(r'pip install -e\s+"?\.\[dev', readme)
-    assert upgrade, "README 缺 pip 升级行（3.8 全新 venv 装不上 editable）"
+    assert upgrade, "README 缺 pip 升级行（老 pip 上装不上 editable）"
     assert editable, "README 缺 editable 安装行"
     assert upgrade.start() < editable.start(), "pip 升级必须在 editable 安装之前"
 
 
 def test_ci_workflow_upgrades_pip(  # noqa: D401
 ):
-    """CI 同款前置：runner 上的 3.8 也会遇到老 pip。"""
+    """CI 同款前置（与 README 保持同一条安装通路）。"""
     path = os.path.join(ROOT, ".github", "workflows", "ci.yml")
     assert os.path.isfile(path)
     assert "install --upgrade pip" in _read(path)
+
+
+# --- 4b. 解释器地板三处一致（pyproject / README / CI 矩阵） -----------------
+
+def _requires_python(pyproject):
+    m = re.search(r'^requires-python\s*=\s*"([^"]+)"', pyproject, re.M)
+    assert m, "pyproject 缺 requires-python"
+    return m.group(1)
+
+
+def test_pyproject_floor_is_the_decided_floor(pyproject):
+    """**决策锚点**：地板抬到 3.12 是 PEP 639（setuptools>=77，其本身要求 >=3.9）推出来的。
+
+    这里把决策值钉死：改地板必须同步改这条测试，避免"悄悄降回去"。
+    """
+    assert _requires_python(pyproject) == ">=3.12", _requires_python(pyproject)
+
+
+def test_build_requires_supports_spdx_license(pyproject):
+    """**因果链守门**：`license = "MIT"`（PEP 639 SPDX）要求 setuptools>=77。
+
+    实测：setuptools 75.x 遇到 SPDX 字符串会**直接报配置错误**
+    （`project.license` must be valid exactly by one definition），不是警告。
+    所以 build-system 下限必须 >=77 —— 否则 py3.8 一类老环境装都装不上。
+    """
+    assert re.search(r'^license\s*=\s*"MIT"\s*$', pyproject, re.M), "license 未用 SPDX 字符串"
+    m = re.search(r'requires\s*=\s*\[\s*"setuptools>=(\d+)"', pyproject)
+    assert m, "build-system.requires 未声明 setuptools 下限"
+    assert int(m.group(1)) >= 77, "PEP 639 需要 setuptools>=77，实测 %s" % m.group(1)
+
+
+def test_ci_matrix_matches_pyproject_floor(pyproject):
+    """CI 矩阵里不得出现低于 `requires-python` 的解释器（否则 CI 必红但本地看不出来）。"""
+    floor = _requires_python(pyproject).lstrip(">=~ ")
+    text = _read(os.path.join(ROOT, ".github", "workflows", "ci.yml"))
+    versions = set(re.findall(r'python:\s*"([0-9.]+)"', text))
+    assert versions, "CI 矩阵里没抽到 python 版本，守门等于空转"
+    outdated = sorted(v for v in versions if _version_tuple(v) < _version_tuple(floor))
+    assert outdated == [], "CI 矩阵含低于地板 %s 的解释器：%r" % (floor, outdated)
+
+
+def _version_tuple(text):
+    return tuple(int(x) for x in re.findall(r"\d+", text))
+
+
+def test_ci_actions_are_recent_majors():
+    """CI actions 大版本：防止回退到会打 Node20 弃用警告的旧大版本。
+
+    `@v5`/`@v6` 的存在性已用 GitHub API 实测确认（tag 200）。
+    """
+    text = _read(os.path.join(ROOT, ".github", "workflows", "ci.yml"))
+    checkout = re.search(r"actions/checkout@v(\d+)", text)
+    setup = re.search(r"actions/setup-python@v(\d+)", text)
+    assert checkout and int(checkout.group(1)) >= 5, "checkout 应 >=v5"
+    assert setup and int(setup.group(1)) >= 6, "setup-python 应 >=v6"
+    assert "permissions:" in text, "CI 缺最小权限声明"
+    assert "concurrency:" in text, "CI 缺 concurrency（同 ref 旧运行未取消）"
 
 
 # --- 5. 退出码语义明示 ------------------------------------------------------
@@ -320,3 +379,51 @@ def test_ci_workflow_exists_and_sets_utf8():
     text = _read(path)
     assert "PYTHONUTF8" in text
     assert "pytest" in text
+
+
+# --- 8. README 写死的测试数必须与实测收集数一致 -----------------------------
+
+#: README 里"全量测试 N 项"的声明形态（`**321 项绿**` 与旧写法都要抽到）。
+_DECLARED_COUNT_RE = re.compile(r"全量测试\s*\*{0,2}(\d+)\s*项")
+
+
+def _declared_test_count(readme):
+    """返回 README 声明的测试数列表（正常应恰好 1 条）。"""
+    return [int(n) for n in _DECLARED_COUNT_RE.findall(readme)]
+
+
+def _collected_count():
+    """真跑一次 `pytest --collect-only` 取收集数（**不跑测试体**，无递归风险）。"""
+    import subprocess
+    proc = subprocess.run(
+        [sys.executable, "-m", "pytest", "-o", "addopts=", "-q", "--collect-only"],
+        cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    out = proc.stdout.decode("utf-8", "replace")
+    assert proc.returncode == 0, "collect-only 失败：\n%s" % out[-2000:]
+    m = re.search(r"(\d+) tests? collected", out)
+    assert m, "collect-only 输出里没抽到收集数：\n%s" % out[-2000:]
+    return int(m.group(1))
+
+
+def test_readme_declares_a_test_count(readme):
+    """扫描面非空自证：README 必须写死一个测试数（否则下面的对账等于空转）。"""
+    declared = _declared_test_count(readme)
+    assert len(declared) == 1, (
+        "README 应恰好声明一处「全量测试 N 项」，实测 %r —— 多处声明会互相矛盾" % (declared,))
+
+
+def test_readme_test_count_matches_collected(readme):
+    """**自指守门**：README 写死的测试数必须等于 `pytest --collect-only` 的实测收集数。
+
+    实测抓出的真缺陷：README:134 长期写着 M0 期的「99 项绿」，而实际早已 321
+    （`git log -S"99 项绿"` → 那句话是 M0 收尾写的，之后没跟着改）。
+    只查字符串的守门拦不住这种"数字烂在原地"，所以这里对账的是**实测收集数**。
+    """
+    declared = _declared_test_count(readme)
+    assert declared, "README 未声明测试数"
+    actual = _collected_count()
+    assert declared == [actual], (
+        "README 声明的测试数 %r 与实测收集数 %d 不一致（新增/删除测试必须同步改 README）"
+        % (declared, actual))
+
