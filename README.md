@@ -133,8 +133,8 @@ policy-radar verify-data --data-root data
   3.8 自带 pip 20.2.3 不支持 PEP 660，`pip install -e .` 会报
   `editable mode currently requires a setup.py based build`。
   **处置** = 安装前先 `python -m pip install --upgrade pip`（快速开始已含此行）；
-  实测升级到 pip 25.0.1 后安装一次成功，全量测试 **330 项绿**（新 clone + 全新 venv 实测；
-  py3.12.10 单解释器 330 collected / 330 passed——地板抬到 3.12 后 3.8 通道已退役。
+  实测升级到 pip 25.0.1 后安装一次成功，全量测试 **336 项绿**（新 clone + 全新 venv 实测；
+  py3.12.10 单解释器 336 collected / 336 passed——地板抬到 3.12 后 3.8 通道已退役。
   **本数字由 `tests/test_readme_gate.py` 对账**：新增/删除测试必须同步改这里，否则守门红）。
 - **构建下限 setuptools>=77**（PEP 639 SPDX license 的要求）。setuptools 76 起要求 Python>=3.9，
   py3.8 能装到的最后一版 75.x 会**直接报配置错误**（`project.license` must be valid exactly by

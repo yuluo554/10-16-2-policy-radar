@@ -60,6 +60,8 @@
 | D30 | **D10 修订：Python 底线 3.8 → 3.12**（`requires-python = ">=3.12"`；CI 矩阵收缩为 ubuntu/windows × 3.12） | **实测推出来的，不是口味选择**：PEP 639 的 `license = "MIT"`（SPDX 字符串）要求 `setuptools>=77`；而 setuptools 76.0.0 起 `requires_python = ">=3.9"`（PyPI 实测），py3.8 能装到的最后一版 75.x 遇到 SPDX 字符串**直接报配置错误**（`project.license` must be valid exactly by one definition，非警告而是硬失败）。原 `license = { text = "MIT" }` 的弃用硬期限是 **2027-02-18**（setuptools 84 实测原文）。3.8/3.9/3.10 均已 EOL，取 3.12 与 CI 现有最高矩阵同口径。**落地**：`build-system.requires = ["setuptools>=77"]`、`license = "MIT"` + `license-files = ["LICENSE"]`、README 的 3.8 表述改为历史记录、`tests/test_readme_gate.py` 三条守门钉住地板/构建下限/矩阵一致性 | 2026-10-20 |
 | D31 | **数据安装口径 = 显式契约**（不把 `data/` 打进 wheel）：非 editable 安装只提供 CLI 与解析能力，数据命令须显式 `--data-root`；不给则 `selftest` exit 1（点名 `data_root_complete missing=[...]`）、`bench`/`verify-data` exit 2 | 备选是"把 data 打进包"，代价是 wheel 显著变大（`data/samples/` 是真实 API 响应样本）且改动 `paths.find_data_root` 核心解析。选契约的理由：**现状本身是合理的分层**（数据随源码分发、不随二进制冻结），问题只是它此前停留在"已知局限"而没有可执行判据。**落地**：`tests/test_selftest.py` 三条守门（安装态布局 selftest=1 且点名缺失项 / bench+verify-data=2 / 包内不得出现 `data/`），第三条独立钉住"数据在包外"这个前提，防前两条假绿 | 2026-10-20 |
 | D32 | **README 写死的测试数由守门对账**（`tests/test_readme_gate.py` 真跑 `pytest --collect-only` 比对） | 实测失效模式：README:134 长期写 M0 期的「99 项绿」，而实际早已 321（`git log -S"99 项绿"` → 那句话是 M0 收尾写的，之后 M1–M5 加了 222 项测试却没跟着改）。**只查字符串的守门拦不住"数字烂在原地"**，所以判据落在实测收集数上。代价是新增/删除测试必须同步改 README——这是有意的自指纪律 | 2026-10-20 |
+| D33 | **`plan/` 的测试数也由守门对账**（`tests/test_plan_count_gate.py`），但**只钉"当前口径"、不动"历史快照"** | D32 只守 README，于是同一失效模式立刻在 `plan/` 重演一次（README 改 330 后，`plan/00`/`06`/`07`/`HANDOFF-M6` 的 321 全烂在原地）。但 `plan/` 与 README 不同：**大部分数字天生是历史**（M1 171 / M2 230 / M4 287 / M5–M6 307→321）。若一律改成 330 就是**篡改历史**。故判据 = 「聚合口径（全量 pytest / 全量测试 / 双解释器全量）的数字，要么等于实测收集数，要么**同一行**带历史限定语（当时 / 本对话实测 / 尾注（M<n> 等显式词表）」。**四条负控实测校准过词表**：初版收了「已退役」→ `plan/07` 的当前行「M7 现状：99 项绿（3.8 通道已退役）」被误判成历史而**静默逃逸**；现按行判断且词表只留真声明历史语义的词。另有扫描面自证（命中数 <10 即红），防措辞被改掉后零命中假绿 | 2026-10-20 |
+| D34 | **`plan/` 的唯一权威数字落在 `plan/00`「测试数口径」一节** | 有 D32/D33 之前，读者按 `plan/06`（321）、README（330）核对会各得一套结论。现在 `plan/00` 给一处**无历史限定**的当前值，`plan/06`/`plan/07` 的引言都指向它；`plan/06` 的四处诚实口径尾注补「（当时）」使历史语义可机器判定 | 2026-10-20 |
 
 **诚实口径尾注（M5）**：仍**无远端**、**CI 仍未跑过** → M5 的 CI 类判据同样写"本地等价校验，未接远端，CI 待首推验证"。M5 本机可实跑的等价物：① 双解释器全量 pytest（**各 321 项**，同数）；② 四生成器 `--check`（两层）；③ `verify-data` exit 0；④ `bench` exit 0；⑤ **CLI digest 离线渲染 exit 0 + run 离线编排（monkeypatch 传输层）端到端 0**；⑥ CI digest 冒烟步骤本地逐条模拟（exit 0/2 对上）；⑦ 退出码 3 退役落点 grep 复核。**不可本机实跑的缺口**：CI 矩阵的 ubuntu/Windows 差异、CI 步骤的 shell 差异、`actions/setup-python` 的 3.8 可用性 → **待首推验证**。
 
@@ -132,10 +134,22 @@ M2 真跑 `fetch`（两频道 × 2 页 × 20 条 = 80 条）后，实采到**一
 ## 里程碑状态
 
 见 `plan/06-里程碑.md` 的状态总表。M0（计划 + 骨架）、M1（数据先行）、M2（双源抓取）、
-M3（diff 与解析）、M4（基准）、M5（交付：日报 + run 编排）、M6（发布）**全部完成，项目收官**。
+M3（diff 与解析）、M4（基准）、M5（交付：日报 + run 编排）、M6（发布）**全部完成，项目收官**；
+M7（发布后卫生：floor 3.12 + CI 两格 + 数据在包外契约）已完成。
 公开仓库 https://github.com/yuluo554/10-16-2-policy-radar ，tag/Release `v0.1.0`；
 CI 实测 2 push = 2 run 全 success（四矩阵 ubuntu/windows × 3.8/3.12，首跑 run 38999630365）。
 逐项发布证据见 `plan/RELEASE-M6.md`，收尾见 `plan/WRAPUP-M6.md`。
+
+### 测试数口径（**本仓唯一权威数字**）
+
+**当前全量测试 = 336 项**（`pytest -o addopts="" -q` → `336 passed` / `336 collected`，
+py3.12；3.8 通道已在 M7 退役）。README 的同名数字由 `tests/test_readme_gate.py` 真跑
+`--collect-only` 对账，`plan/` 里的数字由 `tests/test_plan_count_gate.py` 对账。
+
+**文中其它数字都是历史里程碑当时的快照，不要再改**：M1 171 / M2 230 / M3 230 /
+M4 287 / M5–M6 307→321（含 `plan/06` 各棒 DoD、`plan/HANDOFF-M*`、`plan/RELEASE-M6.md`、
+`plan/WRAPUP-M6.md`）。**判读规则**：带"当时 / 本对话实测 / M<n>"限定语的一律按历史读；
+只有上面这一行和 README 的「336 项绿」是当前值。
 
 **诚实口径尾注（M0）**：全程**无远端**、**一次 CI 都没跑过** → 凡 CI 类 DoD 项一律写"本地等价校验（未接远端，CI 待首推验证）"，**不写"CI 绿"**。M6 首推后据实补记真实 run id（补记是追加事实，不改写历史措辞）。
 **M6 补记（追加事实）**：首推已完成——run 38999630365（main）与 39001429887（v0.1.0）均 success，四矩阵（ubuntu/windows × 3.8/3.12）全绿；ubuntu/py3.8 与 shell 差异两项"不可本机实跑缺口"实测通过。详见 `plan/RELEASE-M6.md`。
