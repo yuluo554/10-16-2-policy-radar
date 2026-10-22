@@ -43,3 +43,6 @@ ENV/
 *.snapshot.local.json
 /out/
 /reports/*.html
+
+# 二次迭代交接物（本地工作目录，不入仓）
+update/
